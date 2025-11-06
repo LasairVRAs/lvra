@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s")
 
-with open('../data/settings.yaml', 'r') as settings:
+with open('../data/public_settings.yaml', 'r') as settings:
     config = yaml.safe_load(settings)
     kafka_server = config['kafka_server']
     my_topic = config['my_topic']
