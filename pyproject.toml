@@ -1,0 +1,50 @@
+[build-system]                                                                                                                                                                                  
+requires = ["setuptools", "setuptools-scm"]                                                                                  
+build-backend = "setuptools.build_meta"                                                                                      
+                                                                                                                             
+[project]                                                                                                                    
+name = "lvra"                                                                                                             
+version = "v0.1.0"
+authors = [                                                                                                                  
+    {name = "Heloise Stevance", email = "hfstevance@gmail.com"},
+    {name = "Ken Smith", email= "ken.w.smith@gmail.com"},
+    {name = "Roy Williams", email= "roy@roe.ac.uk"},
+]                                                                                                                            
+description = "Lasair VRA"                                                                                        
+readme = "README.md"                                                                                                        
+requires-python = ">=3.11"                                                                                                    
+keywords = ["astronomy", "LSST", "Rubin Observatory"]                                                                                        
+license = {text = "BSD-3-Clause"}                                                                                            
+dependencies = [                                                                                                             
+    "numpy", 
+    "pandas",                                                                                                            
+    "requests",                                                                                                              
+    "tqdm",                                                                                                                  
+    "pyyaml",
+    "lasair",
+    "confluent_kafka"                                                                                                                  
+]                                                                                                                            
+# dynamic = ["version"]                                                                                                        
+                                                                                                                             
+# See some of the stuff I have in the hoki .toml file                                                                        
+                                                                                                                             
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow",
+    "integration: mark tests as requiring additional infrastructure",
+    "serial",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]  
+docs = ["sphinx==7.4.7", "sphinx_rtd_theme==3.0.2"]                                                                                           
+                                                                             
+                                                                                                                             
+#[project.scripts]                                                                                                           
+#my-script = "my_package.module:function"  
+
+[tool.setuptools]
+packages = ["lvra", ]
+                                                                                                                             
+# ... other project metadata fields as specified in:                                                                         
+#     https://packaging.python.org/en/latest/specifications/declaring-project-metadata/ 
