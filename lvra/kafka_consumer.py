@@ -2,13 +2,17 @@ import json
 from lasair import lasair_consumer                            # line A          
 import yaml
 import logging 
+from pathlib import Path
 
 # Setup logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s")
 
-with open('../data/public_settings.yaml', 'r') as settings:
+# Build absolute path to settings file relative to this script’s location
+settings_path = Path(__file__).resolve().parent.parent / "data" / "public_settings.yaml"
+
+with settings_path.open("r") as settings:
     config = yaml.safe_load(settings)
     kafka_server = config['kafka_server']
     my_topic = config['my_topic']
