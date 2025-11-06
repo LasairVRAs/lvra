@@ -119,3 +119,5 @@ api_config_prod.yaml
 #   in version control.
 #   https://pdm.fming.dev/#use-with-ide
 .pdm.toml
+
+private_settings.yaml
