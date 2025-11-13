@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO,
 
 
 # Get the "public settings" from the environment or grab the default. 
-env_settings = os.environment.get("LVRA_SETTINGS")
+env_settings = os.environ.get("LVRA_SETTINGS")
 if len(sys.argv) > 1:                            # From the command line 
     settings_path = Path(sys.argv[1])
 elif env_settings:                               # or from environment variable
