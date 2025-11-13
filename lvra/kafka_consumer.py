@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import os
-import sys
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO,
@@ -14,9 +13,7 @@ logging.basicConfig(level=logging.INFO,
 
 # Get the "public settings" from the environment or grab the default. 
 env_settings = os.environ.get("LVRA_SETTINGS")
-if len(sys.argv) > 1:                            # From the command line 
-    settings_path = Path(sys.argv[1])
-elif env_settings:                               # or from environment variable
+if env_settings:                                 # from environment variable
     settings_path = Path(env_settings)
 else:                                            # or go to default file
     settings_path = Path(__file__).resolve().parent.parent / "data" / "public_settings.yaml"
