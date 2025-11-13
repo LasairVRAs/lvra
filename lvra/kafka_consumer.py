@@ -19,7 +19,7 @@ if len(sys.argv) > 1:                            # From the command line
 elif env_settings:                               # or from environment variable
     settings_path = Path(env_settings)
 else:                                            # or go to default file
-    settings_path = Path(__file))).resolve().parent.parent / "data" / "public_settings.yaml"
+    settings_path = Path(__file__).resolve().parent.parent / "data" / "public_settings.yaml"
 
 
 with settings_path.open("r") as settings:
