@@ -34,7 +34,7 @@ jobs:
       - name: Run tests with coverage
         # ensure your package import works; add repository code to PYTHONPATH if needed
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export PYTHONPATH=$PYTHONPATH:$(pwd)/lvra
           pytest --cov=lvra --cov-report=html --cov-report=term -q
 
       - name: Upload HTML coverage report
