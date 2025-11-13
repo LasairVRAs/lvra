@@ -7,7 +7,7 @@
 
 **2025-11-13:** 
 * Added CI (unitest and linter)
-* The `public_settings.yaml` can now be provided by andd environment variable + made a `public_settings_ci.yaml` for the CI.  
+* The `public_settings.yaml` can now be provided by andd environment variable `LVRA_SETTINGS` + made a `public_settings_ci.yaml` for the CI.  
 
 **2025-11-12:** 
 * The `kafka_consumer.py` now saves one json file for all the alerts in one polling batch
