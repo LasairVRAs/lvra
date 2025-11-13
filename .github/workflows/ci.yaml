@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [ "3.10", "3.11", "3.12"]
+
+    steps:
+
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e '.[dev]'
+
+        # Don't need the dustmaps for this repo at the present time
+        # But keeping the code here in case I need it later. 
+        # - name: Set DUSTMAPS_DATA_DIR
+        #   run: |
+        #     mkdir -p /home/runner/dustmaps_data
+        #     echo "DUSTMAPS_DATA_DIR=/home/runner/dustmaps_data" >> $GITHUB_ENV
+
+        # - name: Download SFD dustmaps
+        #   run: |
+        #     python -c "from dustmaps.config import config; config['data_dir'] = '/home/runner/dustmaps_data'"
+        #     python -c "from dustmaps.sfd import fetch; fetch()"
+        
+    - name: Runs just the test
+      run: |
+        python -m pytest 
+
+    - name: Run tests with coverage
+      run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/lvra
+        pytest --cov=finkvra --cov-report=html --cov-report=term
+
+    - name: Upload HTML coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-html-${{ matrix.python-version }}
+        path: htmlcov/
+

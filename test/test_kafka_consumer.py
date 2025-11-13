@@ -1,4 +1,3 @@
-import pytest
 from lvra.kafka_consumer import main
 
 def test_kafka_consumer():
