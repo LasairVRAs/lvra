@@ -39,7 +39,10 @@ jobs:
         #   run: |
         #     python -c "from dustmaps.config import config; config['data_dir'] = '/home/runner/dustmaps_data'"
         #     python -c "from dustmaps.sfd import fetch; fetch()"
-        
+    - name: Set correct public settings for testing
+      env: 
+        LVRA_SETTINGS: data/public_settings_ci.yaml      
+
     - name: Runs just the test
       run: |
         python -m pytest 
