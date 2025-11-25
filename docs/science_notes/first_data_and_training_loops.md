@@ -75,5 +75,43 @@ As I'm doing eyeballing a few things come to mind.
 Also given the state of the data I need to create for myself a realistic first goal for the very first lasair VRA. That could be coarse helping with eyeballing, with the idea that I'll eyeball a lot by hand in the first few weeks anyway to get used to the data and build data sets? 
 
 ### To-Do:
-- [ ] Pick 20 random alerts from the sample I have gathered on the Oxford server
+- [x] Pick 20 random alerts from the sample I have gathered on the Oxford server
 - [ ] Use the Lasair API to grab the whole data for these 20 alerts + the CV + the SNe above
+
+---
+### Grab alert stream data for 20 random objects plus pre-selected
+I did this quickly in `ipython` directly on the server, here is the history:
+```python
+import pandas as pd
+pd.read_json('./20251112_142338.json')
+pd.read_json('./JSON/20251112_142338.json')
+cd JSON
+import os
+os.listdir()
+sorted(os.listdir())
+json_files = sorted(os.listdir())
+ls_df = []
+for file in json_files:
+    ls_df.append(pd.read_json(file))
+pd.concat(ls_df)
+data = pd.concat(ls_df)
+data.diaObjectId == 169575528459665431
+sum(data.diaObjectId == 169575528459665431)
+selected_ids = [169575528459665431,169549124555243568,169298433200357442,169298433200881680,169549116857647169,169298433310982406,169342393025822797]
+import numpy as np
+mask_preselected = np.isin(data.diaObjectId, selected_ids)
+data[mask_preselected]
+data_preselected = data[mask_preselected]
+data_leftover = data[~mask_preselected]
+random_selected_id = np.random.choice(data_leftover.diaObjectId.unique(), 20, replace=False)
+mask_random_selected = np.isin(data_leftover.diaObjectId, random_selected_id)
+data_randomselected = data_leftover[mask_random_selected]
+```
+I created two files in `/storage1/scratch/vra_data/JSON/seed_data_set`:
+* `preselected.csv` 
+* `randomselected.csv`
+
+I have left them separate because the preselected ids return loads of alerts data (of order 2k rows) which is more than I would expect. The random selected is around 770, still 40 rows per object roughly. More than expected. 
+
+
+- [ ] **Why are there so many alert rows per `diaObjectId?`** Is it not one alert per lightcurve point maximum? What am I missing?
