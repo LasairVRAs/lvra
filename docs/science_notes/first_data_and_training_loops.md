@@ -113,5 +113,46 @@ I created two files in `/storage1/scratch/vra_data/JSON/seed_data_set`:
 
 I have left them separate because the preselected ids return loads of alerts data (of order 2k rows) which is more than I would expect. The random selected is around 770, still 40 rows per object roughly. More than expected. 
 
+- [x] **Why are there so many alert rows per `diaObjectId?`** Is it not one alert per lightcurve point maximum? What am I missing?
 
-- [ ] **Why are there so many alert rows per `diaObjectId?`** Is it not one alert per lightcurve point maximum? What am I missing?
+## Tracking down duplicate rows
+For the `diObjectId` `169298433200357442`, I have 1198 rows duplicated and 209 not duplicated. 
+
+I am tracking down in the alert json files located in `lasair@astrosurveydb1:~/data/vra_data/JSON` what might have happened. 
+
+**Question 1: Is it because of the lasair test data (and a failure of my kafka queue)**
+
+* **Number of alerts per file**. For a brief moment I thought that maybe my consumer was calling and empty stream and that I was filling up my data file with the 10 test alerts that lasair sends if there is nothing in the queue. However I can count how many alerts I have in each file `grep -c ^\s*\{ *.json` (since they are one big list of single layer dictionaires _NOTE THIS REGEX WILL BE WRONG IF THE KAFKA STREAM RETURNS NESTED DICTIONARIES_). **Most of the `.json` files have 4000 dictionaries/alerts** and none have only 10. 
+
+**Conclusion 1: Duplicates are not caused by the test alerts**
+
+* **Number of mentions per file** of this `diaObjectId`. By doing `grep -P -c 'diaObjectId":\s169298433200357442' *.json` (note the -P pearl flag needed so regex understand \s as space) I can see how many times this object is mentioned (I added ellipses when valies where repeated):
+
+```bash
+20251112_142338.json:0
+20251114_125901.json:0
+20251115_175901.json:1
+20251117_015901.json:0
+...
+20251120_075901.json:0
+20251123_105901.json:47
+20251123_115901.json:66
+20251123_125901.json:67
+20251123_135901.json:26
+20251123_145901.json:24
+...
+20251127_025902.json:24
+20251127_035902.json:4
+20251127_045901.json:4
+...
+```
+There are **several days where we get 24** mentions of this objet every hour. 
+
+**Question 2: Is it the same data at every repeat mention?**
+
+* **`diff` on the files with the same number of mentions**: It turns out a lot of files have the same exact content! 
+
+**Conclusion 2: Entire files are repeated!**
+
+There is a major misunderstanding on my end with how the stream works: 
+- [ ] **_Ask the Lasair team how to avoid repeats_**
