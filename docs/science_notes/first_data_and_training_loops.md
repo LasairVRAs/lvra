@@ -62,6 +62,8 @@ WHERE objects.diaObjectId=sherlock_classifications.diaObjectId
 - https://lasair-lsst-dev.lsst.ac.uk/objects/169575528459665431/
 - https://lasair-lsst-dev.lsst.ac.uk/objects/169549124555243568/
 
+
+
 ### Example of a CV
 - https://lasair-lsst-dev.lsst.ac.uk/objects/169342393025822797/
 
@@ -156,3 +158,50 @@ There are **several days where we get 24** mentions of this objet every hour.
 
 There is a major misunderstanding on my end with how the stream works: 
 - [ ] **_Ask the Lasair team how to avoid repeats_**
+- [ ] **Check if repeats happen as more alerts come in**
+---
+Another example of supernovae worht downloading for seed data: 
+2025-11-28: 
+Also this beauty: 
+- https://lasair-lsst-dev.lsst.ac.uk/objects/169342391392665714/
+
+_Note: as of 2025-12-01 we are still waiting on new alerts (for over 100 hours) so hard to check if duplication is occuring_
+
+### What other fields in the alerts could we use for real/bogus filtering
+
+From the Rubin [diaSource schema.](https://sdm-schemas.lsst.io/apdb.html#DiaSource)
+
+#### Definitely
+* `apFlux_flag` | `boolean`|  	General aperture flux algorithm failure flag; set if anything went wrong when measuring aperture fluxes. Another apFlux flag field should also be set to provide more information. 
+* `apFlux_flag_apertureTruncated` | `boolean`  |	Aperture did not fit within measurement image. 
+* `centroid_flag` | `boolean` | 	General centroid algorithm failure flag; set if anything went wrong when fitting the centroid. Another centroid flag field should also be set to provide more information. 
+* `dipoleChi2` | 	`float` | 		Chi^2 statistic of the model fit.
+* `dipoleFluxDiff` | 	`float` | 	(nJy) 	Maximum likelihood value for the difference of absolute fluxes of the two lobes for a dipole model.
+* `dipoleMeanFlux` | 	`float` |  (nJy) 	Maximum likelihood value for the mean absolute flux of the two lobes for a dipole model. **Q: is that redundant with `dipoleFluxDiff`
+* `extendedness` |	`float` | 		A measure of extendedness, computed by comparing an object's moment-based traced radius to the PSF moments. extendedness = 1 implies a high degree of confidence that the source is extended. extendedness = 0 implies a high degree of confidence that the source is point-like. 
+* `forced_PsfFlux_flag` | 	`boolean` | 		Forced PSF photometry on science image failed. Another forced_PsfFlux flag field should also be set to provide more information. **Q: so can we not use that in isolation then?**
+* `forced_PsfFlux_flag_edge` | `boolean` | 		Forced PSF flux on science image was too close to the edge of the image to use the full PSF model. 
+* `glint_trail` | `boolean` | 	This flag is set if the source is part of a glint trail. 
+* `isDipole` | `boolean` | 	Source well fit by a dipole. 
+* `isNegative` | 	`boolean` | 		Source was detected as significantly negative. 
+* `pixelFlags` | 	`boolean` | 		General pixel flags failure; set if anything went wrong when setting pixels flags from this footprint's mask. This implies that some pixelFlags for this source may be incorrectly set to False. 
+* `pixelFlags_bad` | `boolean` | Bad pixel in the DiaSource footprint. 			
+* `pixelFlags_cr` | `boolean` | Cosmic ray in the DiaSource footprint. 			
+* `pixelFlags_crCenter` | `boolean` | Cosmic ray in the 3x3 region around the centroid. 			
+* `pixelFlags_edge` | `boolean` | Some of the source footprint is outside usable exposure region (masked EDGE or centroid off image). 
+* `pixelFlags_streakCenter` | 	`boolean` | Streak in the 3x3 region around the centroid. 
+* `psfChi2` | `float` | Chi^2 statistic of the point source model fit. 
+* `psfFlux_flag` | `boolean` | Failure to derive linear least-squares fit of psf model. Another psfFlux flag field should also be set to provide more information. 			
+* `psfFlux_flag_edge` | `boolean` | Object was too close to the edge of the image to use the full PSF model. 			
+* `psfFlux_flag_noGoodPixels` | `boolean` | Not enough non-rejected pixels in data to attempt the fit. 
+* `snr` | `float` | The signal-to-noise ratio at which this source was detected in the difference image. 
+* `trail_flag_edge` | `boolean` | This flag is set if a trailed source extends onto or past edge pixels. 
+
+#### Maybe?
+* Should I make a signal-to-noise feature from `apFlux` and `apFluxErr`?
+* `bboxSize` |	`int` | 	pixel 	Size of the square bounding box that fully contains the detection footprint.
+* `dipoleAngle` | `float` |	(degree) 	Maximum likelihood fit of the angle between the meridian through the centroid and the dipole direction (bearing, from negative to positive lobe).  **Q: I'M NOT SURE I UNDERSTAND WHAT THIS IMPLIES; THE DIRECTION OF THE DIPOLE ONLY OF THERE IS ONE OR ARE WE FITTING A DIPOLE REGARDLESS OF PSF QUALITY AND GETTING ANUMBER OUT?**
+* `dipoleFitAttempted` | 	`boolean` | 		Attempted to fit a dipole model to this source. **Q: what does that imply? is that good news or bad news or no news?**
+* `ixx` | `float` |	(nJy.arcsec**2) 	Adaptive second moment of the source intensity. **Q: what is this (and the other second moments of source uncdertainty)?**
+
+Opened an [issue](https://github.com/lsst-uk/lasair-lsst/issues/400)
