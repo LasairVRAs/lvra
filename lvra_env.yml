@@ -1,4 +1,4 @@
-name: vra
+name: lvra
 channels:
   - defaults
 dependencies:
@@ -25,7 +25,6 @@ dependencies:
   - setuptools=80.9.0
   - sqlite=3.50.2
   - tk=8.6.15
-  - tzdata=2025b
   - wheel=0.45.1
   - xorg-libx11=1.8.12
   - xorg-libxau=1.0.12
@@ -46,7 +45,9 @@ dependencies:
       - jedi==0.19.2
       - lasair==0.1.1
       - matplotlib-inline==0.2.1
+      - numpy==2.3.5
       - packaging==25.0
+      - pandas==2.3.3
       - parso==0.8.5
       - pexpect==4.9.0
       - pluggy==1.6.0
@@ -55,11 +56,15 @@ dependencies:
       - pure-eval==0.2.3
       - pygments==2.19.2
       - pytest==8.4.2
+      - python-dateutil==2.9.0.post0
+      - pytz==2025.2
       - pyyaml==6.0.3
       - requests==2.32.5
+      - six==1.17.0
       - stack-data==0.6.3
       - traitlets==5.14.3
       - typing-extensions==4.15.0
+      - tzdata==2025.2
       - urllib3==2.5.0
       - wcwidth==0.2.14
-prefix: /home/lasair/anaconda3/envs/vra
+prefix: /home/stevance/anaconda3/envs/lvra

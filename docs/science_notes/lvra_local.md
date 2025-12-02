@@ -30,6 +30,8 @@ conda env create -f software/lvra/lvra_env.yml  -n lvra
 **In the future I can just update this yaml file using `conda env export`, commit and push it, and update the environement** whether it be local or remote. 
 
 ### Environment variables
-The only relevant environemnt variable in the remote server is adding the code to the python path, since tokens are stored in files.
+I need to make sure my settings are correct for the location of the data when runing stuff locally. I've added this to my `.bashrc`
 
-Right now there is therefore nothing that needs managing in that regard. 
+```bash
+export LVRA_SETTINGS='/home/stevance/software/lvra/data/public_settings_local.yaml'
+```
