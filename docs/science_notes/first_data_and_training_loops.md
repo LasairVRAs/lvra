@@ -205,3 +205,24 @@ From the Rubin [diaSource schema.](https://sdm-schemas.lsst.io/apdb.html#DiaSour
 * `ixx` | `float` |	(nJy.arcsec**2) 	Adaptive second moment of the source intensity. **Q: what is this (and the other second moments of source uncdertainty)?**
 
 Opened an [issue](https://github.com/lsst-uk/lasair-lsst/issues/400)
+
+## Pseudo-code 
+
+1) consumer data (json) > make `X_new` dataframe > add to training pool `X_pool`
+2) predict `ypred_new` from `X_new` > add to `ypred_pool` and annotate in Lasair (if model running in prod)
+
+**These steps should happen automatically and systematically on the Oxford Lasair remote server during training ramp-up phase**. This can't keep going forever as `X_pool` will balloon relatively quickly. Eventually, can actively sample based on annotations in Lasair rather than recorded `ypred_pool`. But in a first instance when the models are bad, we don't want to be annotating willy nilly.
+
+Then when we want to train:
+
+3) `scp` from remote the `X_pool` and `ypred_pool` (or the training seed data)
+4) Get `yreal` from local records or from eyeballing (using the `finkvra` methods)
+5) Do our new rount of training and record artifacts and results on mlflow server (local).
+
+**?**: How do we do validation effectively in this set up? This is important to figure out so we don't send to production something that is crap. 
+
+### ToDo:
+- [ ] Write code to turn json consumer data to `X_new` and add it to `X_pool` automatically (do that on Oxford severs). This could run in a cron job only once a day.
+- [ ] `scp` that data locally 
+- [ ] Make code to get `yreal` (like in `finkvra`)
+- [ ] set up the mlflow server locally and start training. 
