@@ -226,3 +226,8 @@ Then when we want to train:
 - [ ] `scp` that data locally 
 - [ ] Make code to get `yreal` (like in `finkvra`)
 - [ ] set up the mlflow server locally and start training. 
+
+**To try and make a better real/bogus classifier**:
+- [ ] Grab relevant `diaSource` data from the Lasair API (Roy pushing back on new features).
+
+**Blocker: the lasair API is broken**
