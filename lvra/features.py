@@ -25,6 +25,11 @@ class Features(object):
         p = cls._check_path_exists(path)
         raw = pd.read_csv(p)
         return cls.extract_features(raw, subset_columns=subset_columns)
+    
+    @classmethod
+    def from_dataframe(cls, df, subset_columns=None):
+        """User facing constructor that makes the features from a dataframe"""
+        return cls.extract_features(df, subset_columns=subset_columns)
 
     @classmethod
     def extract_features(cls, raw, subset_columns=None):
