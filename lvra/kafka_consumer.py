@@ -35,11 +35,13 @@ def main():
 
     # make a timestamped file for this poll/run
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    out_path = json_data_dir / f"{ts}.json"
+    out_path = json_data_dir / f"{ts}.json" # with_suffix below REPLACES the .json
+    tmp_path = out_path.with_suffix(".jsn.tmp")  # <-- temporary while writing
+
 
     written = 0
     # open file once and stream JSON objects into an array
-    f = out_path.open("w", encoding="utf-8")
+    f = tmp_path.open("w", encoding="utf-8")
     try:
         f.write("[\n")
         n = 0
@@ -72,12 +74,21 @@ def main():
     finally:
         f.close()
 
-    # if nothing was written, remove the empty array file
-    if written == 0 and out_path.exists():
-        out_path.unlink()
-        logger.info("No messages received — no file written.")
-    else:
-        logger.info(f"Wrote {written} messages to {out_path}")
+    # Post-write handling: rename tmp -> final atomically, or clean up empty file
+    try:
+        if written == 0:
+            # no messages received — remove the temp file if it exists
+            if tmp_path.exists():
+                tmp_path.unlink()
+            logger.info("No messages received — no file written.")
+        else:
+            # Atomically replace any existing final file with the tmp file
+            os.replace(str(tmp_path), str(out_path))
+            logger.info(f"Wrote {written} messages to {out_path}")
+    except Exception:
+        # If rename or cleanup fails, log it and leave temp file for inspection
+        logger.exception("Error finalizing output file; temporary file left for inspection.")
+        raise
 
     return 0
 
