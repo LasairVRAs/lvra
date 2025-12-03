@@ -157,8 +157,11 @@ There are **several days where we get 24** mentions of this objet every hour.
 **Conclusion 2: Entire files are repeated!**
 
 There is a major misunderstanding on my end with how the stream works: 
-- [ ] **_Ask the Lasair team how to avoid repeats_**
-- [ ] **Check if repeats happen as more alerts come in**
+- [x] **_Ask the Lasair team how to avoid repeats_**
+- [x] **Check if repeats happen as more alerts come in**
+
+_Update 2025-12-03: Repeats seem to have stopped. See my update on [Issue 390](https://github.com/lsst-uk/lasair-lsst/issues/390)_
+
 ---
 Another example of supernovae worht downloading for seed data: 
 2025-11-28: 
