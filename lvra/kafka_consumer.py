@@ -6,9 +6,7 @@ from pathlib import Path
 from datetime import datetime
 import os
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s")
+logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 
 
 # Get the "public settings" from the environment or grab the default. 
@@ -24,9 +22,21 @@ with settings_path.open("r") as settings:
     kafka_server = config['kafka_server']        # URL of the server
     my_topic = config['my_topic']                # topic associated with filter
     group_id = config['group_id']                # id used to keep your "place" in queue
-    json_data_dir = Path(config['json_data_dir'])# output directory 
+    base_dir = Path(config['base_dir'])          # base directory for data storage
+    json_data_dir = base_dir / "JSON"            # JSON output directory
+    log_dir = base_dir / "logs"                  # log directory 
 
+# create the directories if they do not exist - this mostly occurs in testing
 json_data_dir.mkdir(parents=True, exist_ok=True)
+log_dir.mkdir(parents=True, exist_ok=True)
+
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s",
+                    handlers=[
+                        logging.FileHandler(log_dir / "lvra_kafka_consumer.log"),
+                        logging.StreamHandler()
+                    ])
+
 
 def main():
     consumer = lasair_consumer(kafka_server, 
@@ -66,7 +76,7 @@ def main():
             written += 1
 
             _id = result.get('diaObjectId', 'no-id')
-            logger.info(f'Got data for: {_id}')
+            logger.debug(f'Got data for: {_id}')
 
             n += 1
 
@@ -80,11 +90,11 @@ def main():
             # no messages received — remove the temp file if it exists
             if tmp_path.exists():
                 tmp_path.unlink()
-            logger.info("No messages received — no file written.")
+            logger.info("EMPTY Ran but no messages received — no file written.")
         else:
             # Atomically replace any existing final file with the tmp file
             os.replace(str(tmp_path), str(out_path))
-            logger.info(f"Wrote {written} messages to {out_path}")
+            logger.info(f"PRODUCED path={out_path} n={written}")
     except Exception:
         # If rename or cleanup fails, log it and leave temp file for inspection
         logger.exception("Error finalizing output file; temporary file left for inspection.")

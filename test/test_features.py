@@ -1,4 +1,4 @@
-from lvra.features import FeaturesRealBogus
+from lvra.utils.features import FeaturesRealBogus
 from pathlib import Path
 
 test_json_path = Path(__file__).resolve().parent.parent / "data" / "test" /"test.json"
