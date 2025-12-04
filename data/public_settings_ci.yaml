@@ -2,4 +2,4 @@ kafka_server: lasair-lsst-dev-kafka_pub.lsst.ac.uk:9092
 my_topic: lasair_83vra-dev
 #group_id: test_ox8
 group_id: pytest
-json_data_dir: ./data/ci_vra_json/
+base_dir: ./data/ci_vra_json/
