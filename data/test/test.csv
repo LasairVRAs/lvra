@@ -1,0 +1,3 @@
+,diaObjectId,lastDiaSourceMjdTai,latestR,nDiaSources,ebv,ra,decl,tns_name,absMag,absMagMJD,firstDiaSourceMjdTai,separationArcsec,direct_distance,distance,z,photoZ,photoZErr,physical_separation_kpc,sherlock_classifications,raErr,decErr,ra_dec_Cov,UTC
+0,169549124913856545,61010.13625183345,0.9993569999999999,7,0.0145969,61.07463107460342,-48.150389879441825,,,,,0.666,,,,,,,SN,2.21813e-05,3.392660000000001e-05,9.86975e-11,2025-12-01 12:17:55
+1,169549124875059234,61010.13625183345,0.816929,2,0.012419,63.82523648256341,-47.58616723381529,,,,,0.74,,,,,,,SN,4.2396300000000006e-05,7.32695e-05,2.11603e-09,2025-12-01 12:17:55

@@ -1,5 +1,6 @@
 kafka_server: lasair-lsst-dev-kafka_pub.lsst.ac.uk:9092
 my_topic: lasair_83vra-dev
-#group_id: test_ox8
+#group_id: test_ox11
 group_id: test_test4
-json_data_dir: /home/lasair/data/vra_data/JSON/
+#json_data_dir: /home/lasair/data/vra_data/JSON/
+base_dir: /home/lasair/data/vra_data/

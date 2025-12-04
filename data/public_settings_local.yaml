@@ -1,5 +1,5 @@
 kafka_server: lasair-lsst-dev-kafka_pub.lsst.ac.uk:9092
 my_topic: lasair_83vra-dev
 #group_id: test_ox8
-group_id: pytest
-base_dir: ./data/ci_vra_json/
+group_id: test_test10
+base_dir: /home/stevance/oxlvra_dev/data/vra_data
