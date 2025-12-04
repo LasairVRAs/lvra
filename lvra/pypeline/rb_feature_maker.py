@@ -27,14 +27,14 @@ try:
     parent = INPUT_PATH.parent
     if parent.name != JSON_DIR_NAME:
         # still try to replace, but warn
-        logger.warning(f"Expected parent dir '{JSON_DIR_NAME}', got '{parent.name}'. Attempting replacement.")
+        logger.warning(f"Expected parent dir '{JSON_DIR_NAME}', got '{parent.name}'. Input was {INPUT_PATH}. Attempting replacement.")
 
     # Replace JSON/ → csv/
     OUTPUT_DIR = parent.parent / CSV_DIR_NAME
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     stem = INPUT_PATH.stem      # "20251204_100000"
-    OUTPUT_PATH = OUTPUT_DIR / f"{stem}.{FEATURE_SUFFIX}.csv"
+    OUTPUT_PATH = OUTPUT_DIR / f"{stem}_{FEATURE_SUFFIX}.csv"
 
 except Exception as e:
     logger.error(f"Could not determine OUTPUT_PATH: {e}")
@@ -62,4 +62,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main()) # exits with the code 0 or 1 depending on if main succeeds
+    sys.exit(main()) # exits with the code 0 or 1 dependng on if main succeeds
