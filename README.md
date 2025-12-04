@@ -5,8 +5,10 @@
 ---
 # Change History
 
-**2025-12-04**: First features from the alerts (+ start of science notes)
-* [PR 11](https://github.com/HeloiseS/lvra/pull/11)
+**2025-12-04**: [PR 11](https://github.com/HeloiseS/lvra/pull/11)
+* First features from the alerts
+* Start of science notes)
+
 
 **2025-11-13:** 
 * Added CI (unitest and linter)
