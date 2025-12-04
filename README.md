@@ -5,6 +5,9 @@
 ---
 # Change History
 
+**2025-12-04**: First features from the alerts (+ start of science notes)
+* [PR 11](https://github.com/HeloiseS/lvra/pull/11)
+
 **2025-11-13:** 
 * Added CI (unitest and linter)
 * The `public_settings.yaml` can now be provided by andd environment variable `LVRA_SETTINGS` + made a `public_settings_ci.yaml` for the CI.  
