@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from datetime import datetime
 import os
 from lvra.utils.features import FeaturesRealBogus
 import sys
