@@ -233,4 +233,5 @@ Then when we want to train:
 **To try and make a better real/bogus classifier**:
 - [ ] Grab relevant `diaSource` data from the Lasair API (Roy pushing back on new features).
 
-**Blocker: the lasair API is broken**
+### Update:
+Lasair API no longer broken. However I can't get the diaSource data (or it's not clear at all how or even if ti's possible!!)

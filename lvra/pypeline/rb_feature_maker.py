@@ -42,7 +42,9 @@ except Exception as e:
 def main():
     logger.info(f"START feature=rb_v1 inpath={INPUT_PATH} outpath={OUTPUT_PATH}") 
     try:
-        features_df = FeaturesRealBogus.from_json(INPUT_PATH)
+        features_df = (FeaturesRealBogus.from_json(INPUT_PATH
+                                                   ).pipe(FeaturesRealBogus.add_diasource_features))
+
         # not writing a temp file for atomicity because
         # it's just one step, either it writes out or it doesn't
         # if we start appending to that file and we risk incomplete writes
