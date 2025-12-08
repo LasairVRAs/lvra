@@ -20,3 +20,4 @@ def test_featuresRB_from_dataframe():
     features = FeaturesRealBogus.from_dataframe(df)
     assert features.shape[0] == 2
     assert features.shape[1] == len(FeaturesRealBogus.columns)
+
