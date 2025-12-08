@@ -231,7 +231,30 @@ Then when we want to train:
 - [ ] set up the mlflow server locally and start training. 
 
 **To try and make a better real/bogus classifier**:
-- [ ] Grab relevant `diaSource` data from the Lasair API (Roy pushing back on new features).
+- [x] Grab relevant `diaSource` data from the Lasair API (Roy pushing back on new features).
 
 ### Update:
-Lasair API no longer broken. However I can't get the diaSource data (or it's not clear at all how or even if ti's possible!!)
+Lasair API no longer broken. 
+`2025-12-08`: I now have proper API access and can get diaSource features. 
+
+
+## Back to making seed data
+`2025-15-08`: I now have a csv file with the features, including diaSource flags:
+* `/home/stevance/oxlvra_dev/data/vra_data/csv/20251204_145208_rb_v1.csv`
+
+Of the seed extragalactic transients listed above there are two present in this csv file:
+* `169549116857647169`
+* `169549124555243568`
+
+This is good enough for now.
+
+Now need to set up training pool, labels etc... so can run something like finkvra... need to think about that. 
+
+Maybe the pseudo code above isn't great. Maybe in the oxford server I just maked the features.csv files. Then I rsync that folder on a cron job.
+
+I need to have a X_pool maker with logging so I can tell which files have already made it in the pool. 
+
+Then I take all files that haven't made it yet and add them to the pool. 
+
+Start Mlflow server in `~/Science/lvra` and set up the directories to receive the csv files from remote, hold the X_pool, the labels, etc.. 
+-> turn this into issues?
