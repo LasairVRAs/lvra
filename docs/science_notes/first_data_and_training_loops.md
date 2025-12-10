@@ -258,3 +258,20 @@ Then I take all files that haven't made it yet and add them to the pool.
 
 Start Mlflow server in `~/Science/lvra` and set up the directories to receive the csv files from remote, hold the X_pool, the labels, etc.. 
 -> turn this into issues?
+
+--
+
+seed list source Ids
+
+['169663456965296177',
+ '169667843967156322',
+ '169667844000710746',
+ '169667843863347324',
+ '169667878172229723',
+ '169676640764821555',
+ '169667843984982187',
+ '169667843059614457',
+ '169667843893755988',
+ '169663444565885369',
+ '169676640596000783',
+ '169667843893755988']

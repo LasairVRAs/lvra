@@ -8,6 +8,7 @@ token = os.getenv('LASAIR_LSST_TOKEN')
 
 
 subfields_diasource = ['diaObjectId',
+                       'diaSourceId',
     'apFlux_flag',
     'apFlux_flag_apertureTruncated',
     'centroid_flag',

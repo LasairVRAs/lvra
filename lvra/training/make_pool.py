@@ -15,10 +15,10 @@ except TypeError:
     raise RuntimeError("Environment variable LVRA_TRAINING_ROOTDIR not set.")
     
 CSV_DIR =  Path(os.getenv("LVRA_TRAINING_ROOTDIR")).resolve()/"csv"
-PARQUET_DIR = Path(os.getenv("LVRA_TRAINING_ROOTDIR")).resolve()/"parquet"
+POOL_DIR = Path(os.getenv("LVRA_TRAINING_ROOTDIR")).resolve()/"pool"
 
 # match lines we will write: ADDED_TO_XPOOL file=/full/path sha256=... nrows=... xpool=/parquet/X_pool.parquet
-_RE_ADDED = re.compile(r'ADDED_TO_XPOOL\s+file=(\S+)')
+_RE_ADDED = re.compile(r'sha256=([0-9a-fA-F]+)')
 
 
 def _setup_logger(log_path: Path):
@@ -35,39 +35,41 @@ def _setup_logger(log_path: Path):
     return logger
 
 def _parse_logs_for_added(logs_dir: Path):
-    """Return set of absolute paths (strings) that were already added to X_pool."""
-    added = set()
+    """Return set of sha256 hashes that were already added to X_pool."""
+    added_hashes = set()
     for p in sorted(logs_dir.glob("*.log")):
         with open(p, "r", encoding="utf-8") as fh:
             for line in fh:
                 m = _RE_ADDED.search(line)
                 if m:
-                    added.add(str(Path(m.group(1)).resolve()))
-    return added
+                    added_hashes.add(m.group(1))
+    return added_hashes
 
 def update_X_pool(csv_dir: str = CSV_DIR, 
                   logs_dir: str = LOG_DIR, 
-                  parquet_dir: str = PARQUET_DIR,
+                  pool_dir: str = POOL_DIR,
                   index_col="diaObjectId"
                   ):
 
     log_path = logs_dir / LOG_FILENAME
     logger = _setup_logger(log_path)
 
-    # 1) which files already ADDED_TO_XPOOL?
-    already_added_set = _parse_logs_for_added(logs_dir)
-    
+    # 1) which files already ADDED_TO_XPOOL - specifically their CONTENT hash 
+    already_added_hashes = _parse_logs_for_added(logs_dir)
 
-    # 2) find CSV files in csv_dir
-    csv_files = sorted(csv_dir.glob("*.csv"))
-    full_csv_set = set([str(p.resolve()) for p in csv_files])
-    to_add_set = full_csv_set - already_added_set
-    
-    if not to_add_set:
+    csv_files = list(Path(csv_dir).glob("*.csv"))
+    # Identify CSVs whose content is new
+    to_add = []
+    for p in csv_files:
+        sha = sha256_of_file(p)
+        if sha not in already_added_hashes:
+            to_add.append((p, sha))
+
+    if not to_add:
         logger.info("No new CSV files to add to X_pool.")
-        return 
+        return
     
-    xpool_path = parquet_dir / "X_pool.parquet"
+    xpool_path = pool_dir / "X_pool.parquet"
     try:
         df_pool = pd.read_parquet(xpool_path)
     except FileNotFoundError:
@@ -76,14 +78,12 @@ def update_X_pool(csv_dir: str = CSV_DIR,
 
     new_dfs = []
     metadata_tolog = [] 
-    for csv_path_str in sorted(to_add_set):
-        df = pd.read_csv(csv_path_str, dtype={index_col: str})
-        df[index_col] = df[index_col].astype("string")
+    for csv_path, sha in sorted(to_add):
+        df = pd.read_csv(csv_path, dtype={index_col: str, 'diaSourceId': str})
         nrows = len(df)
-        sha = sha256_of_file(csv_path_str)
+        sha = sha256_of_file(csv_path)
         new_dfs.append(df)
-        metadata_tolog.append((csv_path_str, sha, nrows))
-
+        metadata_tolog.append((csv_path, sha, nrows))
 
     combined = pd.concat([df_pool] + new_dfs, ignore_index=True)
     combined = combined.drop_duplicates(subset=[index_col], keep="first")
@@ -96,7 +96,8 @@ def update_X_pool(csv_dir: str = CSV_DIR,
     # page indexes, row groups, column chunks, metadata footer that must be written last
     # If the process dies before the footer is written, the file is garbage.
     
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet", dir=str(parquet_dir)) as tf:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".parquet", 
+                                     dir=str(pool_dir)) as tf:
         tmp_path = Path(tf.name)
     combined.to_parquet(tmp_path, index=False)
     tmp_path.replace(xpool_path)
