@@ -8,7 +8,6 @@ LOGDIR=/home/lasair/data/vra_data/logs
 JSONDIR=/home/lasair/data/vra_data/JSON
 
 # EVERYTHING BELOW CAN BE COPY PASTED BETWEEN LOCAL AND REMOTE
-
 CONSUMER_LOG=$LOGDIR/lvra_kafka_consumer.log
 FEATURE_LOG=$LOGDIR/feature_rb_v1.log
 #SAFETY_SEC=120

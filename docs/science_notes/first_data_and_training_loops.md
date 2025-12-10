@@ -1,6 +1,89 @@
 # First data and training loops
 
-## Gathering Seed Data
+
+
+
+## Seed data
+
+I have create a  `~/Science/lvra` directory containing:
+* `./csv`: This directory can be synced to the features direcgtory on the oxford lasair server using:
+
+```bash
+rsync -avz -e "ssh -i ~/.ssh/id_oxservers" lasair@oxdb1:/home/lasair/data/vra_data/csv/ .  
+```
+
+* `./logs`: which hosts the logs
+
+* `./pool`: which hosts the pool of training data including files like `X_pool.parquet` and `y_pool.csv`
+
+Note that there is a reason why the labels `y_pool` is a csv. CSV is easier to add one line at a time to as is done in the `lvra.training.labeling.interacting_labeling()` function. 
+
+On `2025-15-08` I had identified seed extragalactic transients present in `/home/stevance/oxlvra_dev/data/vra_data/csv/20251204_145208_rb_v1.csv` from those listed in the appendix below:
+* `169549116857647169`
+* `169549124555243568`
+
+After making `X_pool.parquet` by calling the module `lvra.training.make_pool.py` I sampled 10 other objected and grabed the `diaSourceIds` for the lot.
+
+**Seed `diaSourceId`**
+```python
+['169663456965296177',
+ '169667843967156322',
+ '169667844000710746',
+ '169667843863347324',
+ '169667878172229723',
+ '169676640764821555',
+ '169667843984982187',
+ '169667843059614457',
+ '169667843893755988',
+ '169663444565885369',
+ '169676640596000783',
+ '169667843893755988']
+```
+
+
+Then the interactive labelling can be done like so.
+
+```python
+# from the ~Science/vra/pool directory 
+import pandas as pd
+from lvra.training.labeling import interactive_labeling as label
+
+seed_sourceid = ['169663456965296177',
+ '169667843967156322',
+ '169667844000710746',
+ '169667843863347324',
+ '169667878172229723',
+ '169676640764821555',
+ '169667843984982187',
+ '169667843059614457',
+ '169667843893755988',
+ '169663444565885369',
+ '169676640596000783',
+ '169667843893755988']
+pool = pd.read_parquet('./X_pool.parquet')
+
+df_source_obj = pool[['diaObjectId', 'diaSourceId']]
+df_source_obj[df_source_obj.diaSourceId.isin(seed_sourceid)]
+df_seed = df_source_obj[df_source_obj.diaSourceId.isin(seed_sourceid)]
+
+label(df_seed)
+```
+
+I now have **the first seed labels in `./pool/y_pool.csv`**
+
+## First Training Loops
+
+### To-Do
+- [ ] Run the first basic training loop in mlflow
+- [ ] Set up all the artifact logging in mlflow
+
+---
+
+# Appendices
+
+_These contain important notes for documenting the thought process and early trouble shooting but they have been moved to appendices to streamline the notes that are most important for daily operations._
+
+## Early seed data gathering attempts and trouble shooting
 When speaking with Steve he mentioned that having a starting point for the training data 
 is a good idea. This makes sense as there are a lot of alerts but few real extra gal transients
 we are interested in. If we randomly sample a small subset of alerts it is likely we will have 
@@ -225,13 +308,17 @@ Then when we want to train:
 **?**: How do we do validation effectively in this set up? This is important to figure out so we don't send to production something that is crap. 
 
 ### ToDo:
-- [ ] Write code to turn json consumer data to `X_new` and add it to `X_pool` automatically (do that on Oxford severs). This could run in a cron job only once a day.
-- [ ] `scp` that data locally 
-- [ ] Make code to get `yreal` (like in `finkvra`)
-- [ ] set up the mlflow server locally and start training. 
+- [ ] **[NO]** Write code to turn json consumer data to `X_new` and add it to `X_pool` automatically (do that on Oxford severs). This could run in a cron job only once a day.
+- [x] `scp` that data locally 
+
+=> actually rsync the features csv directly
+- [x] Make code to get `yreal` (like in `finkvra`)
+- [x] set up the mlflow server locally and start training. 
 
 **To try and make a better real/bogus classifier**:
-- [ ] Grab relevant `diaSource` data from the Lasair API (Roy pushing back on new features).
+- [x] Grab relevant `diaSource` data from the Lasair API (Roy pushing back on new features).
 
 ### Update:
-Lasair API no longer broken. However I can't get the diaSource data (or it's not clear at all how or even if ti's possible!!)
+Lasair API no longer broken. 
+`2025-12-08`: I now have proper API access and can get diaSource features. 
+

@@ -34,4 +34,11 @@ I need to make sure my settings are correct for the location of the data when ru
 
 ```bash
 export LVRA_SETTINGS='/home/stevance/software/lvra/data/public_settings_local.yaml'
+export LASAIR_LSST_TOKEN = [see my .bashrc]
+```
+
+## Rsync the csv features files
+From `~/Science/lvra/csv`
+```bash
+rsync -avz -e "ssh -i ~/.ssh/id_oxservers" lasair@oxdb1:/home/lasair/data/vra_data/csv/ .           
 ```
