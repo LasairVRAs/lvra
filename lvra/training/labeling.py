@@ -1,6 +1,6 @@
 from pathlib import Path
 import tempfile
-from typing import Callable, Dict, Iterable, Optional
+from typing import Callable, Dict, Optional
 import uuid
 import webbrowser
 import pandas as pd
