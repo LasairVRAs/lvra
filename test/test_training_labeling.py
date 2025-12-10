@@ -99,7 +99,7 @@ def test_interactive_labeling_basic(tmp_path):
             return "q"
 
     # run interactive labeling (sleep=0 to avoid delay)
-    res = labeling.interactive_labeling(
+    labeling.interactive_labeling(
         df_pool=pool,
         output=str(out_path),
         input_func=fake_input,
