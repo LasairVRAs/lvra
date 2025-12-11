@@ -79,7 +79,7 @@ mlflow server --host 127.0.0.1 --port 6969
 ```
 
 ### To-Do
-- [ ] Run the first basic training loop in mlflow
+- [x] Run the first basic training loop in mlflow
 - [ ] Set up all the artifact logging in mlflow
 
 ---
