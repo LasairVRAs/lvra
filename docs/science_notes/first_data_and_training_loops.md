@@ -69,7 +69,7 @@ df_seed = df_source_obj[df_source_obj.diaSourceId.isin(seed_sourceid)]
 label(df_seed)
 ```
 
-I now have **the first seed labels in `./pool/y_pool.csv`**
+I now have **the first seed labels in `./pool/y_labeled.csv`**
 
 ## First Training Loops
 
@@ -81,6 +81,10 @@ mlflow server --host 127.0.0.1 --port 6969
 ### To-Do
 - [x] Run the first basic training loop in mlflow
 - [ ] Set up all the artifact logging in mlflow
+
+Also I more data was received, the feature maker worked and I have rsynced the new csv to Science/lvra/csv, and updated `X_pool` by running `make_pool.py` as a script.
+
+**Once I have settled on what artifacts to log I need to do a first round of training (maybe sample a dozen more from `X_pool`) and decide how to select new samples to label!** 
 
 ---
 

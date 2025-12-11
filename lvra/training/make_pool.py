@@ -72,6 +72,7 @@ def update_X_pool(csv_dir: str = CSV_DIR,
     try:
         df_pool = pd.read_parquet(xpool_path)
     except FileNotFoundError:
+        #TODO : will need to make a unitest for this. 
         logger.info(f"X_pool.parquet not found at {xpool_path}, starting new pool.")
         df_pool = pd.DataFrame(columns=[index_col])
 
@@ -83,6 +84,7 @@ def update_X_pool(csv_dir: str = CSV_DIR,
         except Exception as e:
             logger.error(f"Failed to read CSV {csv_path}: {e}")
             continue
+        
         nrows = len(df)
         sha = sha256_of_file(csv_path)
         new_dfs.append(df)

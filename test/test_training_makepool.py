@@ -8,6 +8,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+test_csv_path = Path(__file__).resolve().parent.parent / "data" / "test" /"test_bad.csv"
+
 
 def file_sha256(path: Path) -> str:
     h = hashlib.sha256()
