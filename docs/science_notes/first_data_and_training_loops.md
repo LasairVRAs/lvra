@@ -73,6 +73,11 @@ I now have **the first seed labels in `./pool/y_pool.csv`**
 
 ## First Training Loops
 
+In `~Science/lvra` we start the `mlflow` server:
+```bash
+mlflow server --host 127.0.0.1 --port 6969
+```
+
 ### To-Do
 - [ ] Run the first basic training loop in mlflow
 - [ ] Set up all the artifact logging in mlflow

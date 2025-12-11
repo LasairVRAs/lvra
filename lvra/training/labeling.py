@@ -69,7 +69,7 @@ def load_labels(path: str
 
 def interactive_labeling(
     df_pool: pd.DataFrame,
-    output:  str = POOL_DIR / "y_pool.csv",
+    output:  str = POOL_DIR / "y_labeled.csv",
     allowed_labels: Optional[Dict[str, str]] = None,
     resume: bool = True,
     url_template: str = "https://lasair-lsst-dev.lsst.ac.uk/objects/{oid}",
