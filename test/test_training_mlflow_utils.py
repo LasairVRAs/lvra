@@ -1,7 +1,7 @@
 # tests/test_mlflow_utils.py
 import mlflow
-from lvra.training.mlflow_utils import load_config, setup_mlflow
-from lvra.training import mlflow_utils as mu
+from lvra.training.learning_utils import load_config, setup_mlflow
+from lvra.training import learning_utils as mu
 import pandas as pd
 
 def test_load_training_sample_basic(tmp_path):
