@@ -143,6 +143,7 @@ def interactive_labeling(
             "v": "varstar",
         }
 
+    print(allowed_labels)
 
     # load existing labels if resume requested
     if resume and out_path.exists():
@@ -226,4 +227,4 @@ def interactive_labeling(
 
     final = load_labels(str(out_path))
     logger.info(f"END session_id={session_id} total_labels={len(final)}")
-    return 
+    return session_id

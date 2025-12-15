@@ -103,7 +103,7 @@ def load_metrics(model_name, METRICS_DIR):
                                      'model_name'
                                     ])
     else:
-        df = pd.read_csv(str(path.expanduser()))
+        df = pd.read_csv(str(path.expanduser()), index_col=0)
     return df, path
 
 
@@ -118,7 +118,7 @@ def load_trainingIds(path):
                                      'round'])
         training_round = 0
     else:
-        df = pd.read_csv(str(trainingId_path.expanduser()))
+        df = pd.read_csv(str(trainingId_path.expanduser()), index_col=0)
         training_round = df.iloc[-1]['round']
     return training_round, df
 
@@ -128,21 +128,25 @@ def update_trainingIds(sampled_ids, training_round, trainingId_df):
     df = sampled_ids.copy()
     df.loc[:,'timestamp'] = ts
     df.loc[:,'round'] = training_round
-    return pd.concat((trainingId_df, df))
+    return pd.concat((trainingId_df, df)).reset_index(drop=True)
 
 
 def resolve_model_name(cfg):
     RS = None
     LR = None
     MaxI = None
+    SS = None
     if 'random_state' in cfg['MODEL_PARAMS'].keys():
         RS = cfg['MODEL_PARAMS']['random_state']
     if 'learning_rate' in cfg['MODEL_PARAMS'].keys():
         LR = cfg['MODEL_PARAMS']['learning_rate']
     if 'max_iter' in cfg['MODEL_PARAMS'].keys():
         MaxI = cfg['MODEL_PARAMS']['max_iter']
-    
-    name = f"{cfg['EXPERIMENT']}_LR{LR}_MaxI{MaxI}_RS{RS}".replace('.',"p")
+    try: 
+        SS = cfg['SAMPLING_STRATEGY']
+    except KeyError:
+        SS = "UNK"    
+    name = f"{cfg['EXPERIMENT']}_LR{LR}_MaxI{MaxI}_RS{RS}_SS{SS}".replace('.',"p")
     return name
     
 
