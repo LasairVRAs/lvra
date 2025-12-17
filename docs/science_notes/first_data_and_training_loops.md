@@ -71,31 +71,14 @@ label(df_seed)
 
 I now have **the first seed labels in `./pool/y_labeled.csv`**
 
-## First Training Loops
-
-`2025-12-12`: Today whilste trying to implement the stuf below I kept getting massive 500 errors when trying to retrieve the models. Frankly it's not worth the effort since this is for Lasair and not Fink. 
-
-Instead I am going to use my own folders and logging system. Which I have now put into place!
-
-**I have done the first round of training**, for which I eyeballed an extra 50 or so objects in order to have enough seed data to converge (I might add a couple of good real examples).
-
-### To-Do:
-- [ ] Add labels to a couple of the really good extra gal transients I have seen (pick the diaSource id where the diff is best)
-- [ ] Do the "first" round of modeling again
-- [ ] Implement the uncertainty based sampling strategy (pick X to label within an uncertainty window - so not quite ordered by prediction uncertainty)
-- [ ] Do another few rounds of training
-- [ ] Label enough data to have a validation set
-- [ ] Try and get some metrics before Wednesday!
-- [ ] Think about how todeal with the fact that when i eyeball and give the label for a diasourceid, it might be a shit one amongst an otherwise great lightcurve **this can screw my poor model!**
-- [ ] Fix my unitests!
+## First Training Loop!
 
 ###  NOPE - Doing away with MLflow for now
 In `~Science/lvra` we start the `mlflow` server:
 ```bash
 mlflow server --host 127.0.0.1 --port 6969
 ```
-
-### To-Do
+#### To-Do
 - [x] Run the first basic training loop in mlflow
 - [ ] Set up all the artifact logging in mlflow
 
@@ -103,11 +86,30 @@ Also I more data was received, the feature maker worked and I have rsynced the n
 
 **Once I have settled on what artifacts to log I need to do a first round of training (maybe sample a dozen more from `X_pool`) and decide how to select new samples to label!** 
 
+#### Update on mlflow
+`2025-12-12`: Today whilste trying to implement the stuf below I kept getting massive 500 errors when trying to retrieve the models. Frankly it's not worth the effort since this is for Lasair and not Fink. 
+
+Instead I am going to use my own folders and logging system. Which I have now put into place!
+
+**I have done the first round of training**, for which I eyeballed an extra 50 or so objects in order to have enough seed data to converge (I might add a couple of good real examples).
+
+## First Sampling Strategies tests
+
+
+## To-Do:
+- [ ] Label enough data to have a validation set
+- [ ] Think about how todeal with the fact that when i eyeball and give the label for a diasourceid, it might be a shit one amongst an otherwise great lightcurve **this can screw my poor model!**
+- [ ] Fix my unitests!
+
+
+
 ---
 
 # Appendices
 
 _These contain important notes for documenting the thought process and early trouble shooting but they have been moved to appendices to streamline the notes that are most important for daily operations._
+
+
 
 ## Early seed data gathering attempts and trouble shooting
 When speaking with Steve he mentioned that having a starting point for the training data 
