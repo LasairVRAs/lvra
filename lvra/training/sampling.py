@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import logging
 
 def nsr_sampling(predictions_df: pd.DataFrame,
                  score_column: str = 'pred',
