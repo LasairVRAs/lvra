@@ -69,7 +69,7 @@ def load_labels(path: str
 
 def interactive_labeling(
     df_pool: pd.DataFrame,
-    output:  str = POOL_DIR / "y_pool.csv",
+    output:  str = POOL_DIR / "y_labeled.csv",
     allowed_labels: Optional[Dict[str, str]] = None,
     resume: bool = True,
     url_template: str = "https://lasair-lsst-dev.lsst.ac.uk/objects/{oid}",
@@ -143,6 +143,7 @@ def interactive_labeling(
             "v": "varstar",
         }
 
+    print(allowed_labels)
 
     # load existing labels if resume requested
     if resume and out_path.exists():
@@ -179,7 +180,7 @@ def interactive_labeling(
             # choose URL
             url = url_template.format(oid=oid) 
 
-            print(f"\n{i+1}/{total} - diaSourceId={sid} diaObjectId={oid or '(unknown)'}")
+            print(f"\n{i+1}/{total} - mjd={row.get('mjd', '(unknown)')} - diaSourceId={sid} diaObjectId={oid or '(unknown)'}")
             try:
                 opener(url)
             except Exception as e:
@@ -226,4 +227,4 @@ def interactive_labeling(
 
     final = load_labels(str(out_path))
     logger.info(f"END session_id={session_id} total_labels={len(final)}")
-    return 
+    return session_id
