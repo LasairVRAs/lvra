@@ -1,114 +1,170 @@
-import lasair
+#!/usr/bin/env python3
 import os
+import sys
 import logging
 from pathlib import Path
 import yaml
-from datetime import datetime
-import sys
 import joblib
 import pandas as pd
+import lasair
+import traceback
+from datetime import datetime
 
+# --- logging setup (stdout + file handler will be set after config read) ---
 logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s",)
+logger.setLevel(logging.INFO)
+_stream_handler = logging.StreamHandler()
+_stream_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+logger.addHandler(_stream_handler)
 
 
+def predict(X: pd.DataFrame, model):
+    # keep only ids + model input columns as user expected; model.predict_proba expects full X.
+    preds_df = X[['diaObjectId', 'diaSourceId']].copy()
+    prob = model.predict_proba(X)
+    # sklearn returns Nx2 for binary; take column 1
+    preds_df['pred'] = prob[:, 1]
+    return preds_df.sort_values('pred', ascending=False)
 
-def predict(X, model):
-    predictions = X[['diaObjectId', 'diaSourceId']].copy()
-    pred = model.predict_proba(X)
-    predictions.loc[:, 'pred'] = pred.T[1]
-    return predictions.sort_values('pred', ascending=False)
 
-
-def annotate(objectId, score_i, L, topic_out, classdict, version='0.1'):
-    #classdict      = {'vra_model': model_name_nsr, 'version': 'alpha'}
+def annotate_object(objectId, score_i, L, topic_out, classdict, version='0.1'):
     classification = str(score_i)
-    explanation    = 'Lasair VRA RB score'
-    
-    L.annotate(
-        topic_out, 
-        objectId, 
-        classification,
-        version=version, 
-        explanation=explanation, 
-        classdict=classdict, 
-        url='')
-    return
-
+    explanation = 'Lasair VRA RB score'
+    # try/except per-object to avoid catastrophes
+    try:
+        L.annotate(
+            topic_out,
+            objectId,
+            classification,
+            version=version,
+            explanation=explanation,
+            classdict=classdict,
+            url=''
+        )
+        return True, None
+    except Exception as e:
+        return False, str(e)
 
 
 def main(annotator: str, model_name: str, features_path: str, debug: bool=False):
-
-    # SET UP THE ENVIRONMENT
-    # Get the "public settings" from the environment or grab the default. 
+    # load settings
     env_settings = os.environ.get("LVRA_SETTINGS")
-    if env_settings:                                 # from environment variable
+    if env_settings:
         settings_path = Path(env_settings)
-    else:                                            # or go to default file
+    else:
         settings_path = Path(__file__).resolve().parent.parent / "data" / "public_settings.yaml"
 
+    with settings_path.open("r") as fh:
+        config = yaml.safe_load(fh)
 
-    with settings_path.open("r") as settings:
-        config = yaml.safe_load(settings) 
-        endpoint = config['endpoint']                # endpoint for lasair-lsst
-        base_dir = Path(config['base_dir'])          # base directory for data storage
-        csv_data_dir = base_dir / "csv"              # CSV output directory
-        log_dir = base_dir / "logs"                  # log directory 
-        models_dir = base_dir / "models"              # models directory
-
+    endpoint = config['endpoint']
+    base_dir = Path(config['base_dir'])
+    csv_data_dir = base_dir / "csv"
+    log_dir = base_dir / "logs"
+    models_dir = base_dir / "models"
 
     csv_data_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
     models_dir.mkdir(parents=True, exist_ok=True)
 
-    log_path = log_dir / f"lvra_annotators.log"
+    log_path = log_dir / "lvra_annotators.log"
 
-    # LOAD THE MODEL
+    # add file handler
+    fh = logging.FileHandler(log_path, mode='a')
+    fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+    logger.addHandler(fh)
+
+    logger.info(f"Starting annotator={annotator} model={model_name} features={features_path}")
+
     model_path = (models_dir / model_name).with_suffix('.joblib')
-    logging.info(f"Using model path: {model_path}")
+    if not model_path.exists():
+        logger.error(f"Model file not found: {model_path}")
+        logger.info(f"FAIL annotate model={model_name} inpath={features_path} reason=missing_model")
+        return 2
 
-    model = joblib.load(model_path)
+    try:
+        model = joblib.load(model_path)
+    except Exception:
+        logger.exception("Failed to load model")
+        logger.info(f"FAIL annotate model={model_name} inpath={features_path} reason=joblib_load_error")
+        return 2
 
-    # LOAD THE DATA TO ANNOTATE
-    csv_path = csv_data_dir / features_path
-    logging.info(f"Loading features from: {csv_path}")
-    X = pd.read_cscv(features_path)
-    logging.info(f"Loaded {len(X)} rows to annotate.")
+    csv_path = (csv_data_dir / features_path).resolve()
+    if not csv_path.exists():
+        logger.error(f"Features file not found: {csv_path}")
+        logger.info(f"FAIL annotate model={model_name} inpath={features_path} reason=missing_features")
+        return 2
 
+    # quick read with safe options
+    try:
+        X = pd.read_csv(csv_path)
+    except Exception:
+        logger.exception("Failed to read features CSV")
+        logger.info(f"FAIL annotate model={model_name} inpath={features_path} reason=csv_read_error")
+        return 2
 
-    # CREATE THE LASAIR CLIENT
+    nrows = len(X)
+    logger.info(f"Loaded {nrows} rows from {csv_path}")
+    if nrows == 0:
+        logger.info("Zero rows to annotate; nothing to do.")
+        logger.info(f"SUCCESS annotate model={model_name} inpath={features_path} rows=0")
+        return 0
+
+    # create lasair client
     token = os.getenv("LASAIR_LSST_TOKEN")
-    L = lasair.lasair_client(token, endpoint=endpoint)
-    logging.info(f"Lasair Client created with endpoint: {endpoint}")
+    try:
+        L = lasair.lasair_client(token, endpoint=endpoint)
+    except Exception:
+        logger.exception("Failed to construct Lasair client")
+        logger.info(f"FAIL annotate model={model_name} inpath={features_path} reason=lasair_client_error")
+        return 2
 
-    # MAKE PREDICTIONS
-    scores = predict(X, model)
+    # predictions
+    try:
+        scores = predict(X, model)
+    except Exception:
+        logger.exception("Prediction failed")
+        logger.info(f"FAIL annotate model={model_name} inpath={features_path} reason=prediction_error")
+        return 2
+
+    # dedupe on object id (keep top score)
     scores = scores.drop_duplicates(subset=['diaObjectId'])
+    logger.info(f"{len(scores)} unique diaObjectId(s) to annotate")
 
     if debug:
-        logging.info("DEBUG MODE: Note calling the annotator for now")
-        return exit(0)
-    
-    # ANNOTATE THE DATA
-    topic_out = ANNOTATOR
+        logger.info("DEBUG: would annotate these objects (top 10):")
+        logger.info(scores.head(10).to_string(index=False))
+        return 0
+
+    topic_out = annotator
     classdict = {'vra_model': model_name, 'version': '0.1'}
+    success_count = 0
+    fail_count = 0
     for idx, row in scores.iterrows():
         objectId = row['diaObjectId']
         score_i = row['pred']
-        annotate(objectId, score_i, L, topic_out, classdict)
+        ok, err = annotate_object(objectId, score_i, L, topic_out, classdict)
+        if ok:
+            success_count += 1
+            logger.info(f"ANNOTATED object={objectId} score={score_i:.6f}")
+        else:
+            fail_count += 1
+            logger.error(f"ANNOTATION FAILED object={objectId} err={err}")
+
+    logger.info(f"Finished annotating: success={success_count} fail={fail_count} rows={nrows}")
+    # one-liner success marker usable by bash log-greps
+    logger.info(f"SUCCESS annotate model={model_name} inpath={features_path} rows={nrows} success={success_count} fail={fail_count}")
+
+    return 0
 
 
-    return exit(0)
-
-if __name__=='__main__':
-    if len(sys.argv) != 4:
-        print("Usage: python annotator.py <ANN> <MODEL_PATH> <FEATURES_PATH>")
-        sys.exit(1)
-        
-    ANNOTATOR = sys.argv[1] 
-    MODEL_NAME = sys.argv[2]
-    FEATURES_PATH = sys.argv[3]
-
-    logging.info(f"ANNOTATOR: {ANNOTATOR} | MODEL_NAME: {MODEL_NAME}")
-    main(ANNOTATOR, MODEL_NAME, FEATURES_PATH)
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("ANNOTATOR")
+    parser.add_argument("MODEL_NAME")
+    parser.add_argument("FEATURES_PATH")
+    parser.add_argument("--debug", action="store_true")
+    args = parser.parse_args()
+    code = main(args.ANNOTATOR, args.MODEL_NAME, args.FEATURES_PATH, debug=args.debug)
+    sys.exit(code)

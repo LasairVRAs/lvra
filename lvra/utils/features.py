@@ -161,7 +161,10 @@ class Features(object):
         """
         df = raw.copy()
         if subset_columns is None:
-            subset_columns = cls.columns
+            if cls.columns is None:
+                return df
+            else:
+                subset_columns = cls.columns
 
         # Will need to catch exceptions when not all subset columns are present
         # in the raw dataframe
@@ -178,10 +181,10 @@ class FeaturesRealBogus(Features):
         Takes the features dataframe and adds diaSource features by calling Lasair API
     """
 
-    columns = ['diaObjectId', 'latestR', 'nDiaSources', 'ebv',
-       'ra', 'decl', 'separationArcsec', 'direct_distance', 'distance', 'z', 'photoZ',
-       'photoZErr', 'physical_separation_kpc','raErr', 'decErr', 'ra_dec_Cov']
-    
+    #columns = ['diaObjectId', 'lastDiaSourceMjdTai','latestR', 'nDiaSources', 'ebv',
+    #   'ra', 'decl', 'separationArcsec', 'direct_distance', 'distance', 'z', 'photoZ',
+    #   'photoZErr', 'physical_separation_kpc','raErr', 'decErr', 'ra_dec_Cov']
+   
     @classmethod
     def add_diasource_features(cls, 
                                df: pd.DataFrame, 
