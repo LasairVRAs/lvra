@@ -168,7 +168,8 @@ class Features(object):
 
         # Will need to catch exceptions when not all subset columns are present
         # in the raw dataframe
-        features = df[subset_columns]
+        # features = df[subset_columns]
+        features = df 
         return features
 
 

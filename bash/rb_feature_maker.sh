@@ -29,6 +29,15 @@ for path in "${produced_paths[@]}"; do
   #   continue
   #fi
 
+  #check if we have exceeded the reqest limit in the last hour, if yes, exit program                                          
+  ts=$(grep -oP '.*(?=exceeded)' "$LOGDIR"/lvra_rb_feature_maker_error.log | tail -1 | cut -c1-23)                  
+  log_epoch=$(date -d "${ts/,/.}" +%s)                                                                              
+  now_epoch=$(date +%s)                                                                                             
+  if (( now_epoch - log_epoch < 3600 )); then                                                                       
+    echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") Exceeded request limit recently; exiting"                                
+    exit 1                                                                                                          
+  fi    
+
   # skip if already processed successfully
   if grep -q "SUCCESS feature=rb_v1 inpath=${path}" "$FEATURE_LOG"; then
      #echo $path found so already don
