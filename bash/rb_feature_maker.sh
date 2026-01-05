@@ -30,7 +30,7 @@ for path in "${produced_paths[@]}"; do
   #fi
 
   #check if we have exceeded the reqest limit in the last hour, if yes, exit program                                          
-  ts=$(grep -oP '.*(?=exceeded)' "$LOGDIR"/lvra_rb_feature_maker_error.log | tail -1 | cut -c1-23)                  
+  ts=$(grep -oP '.*(?=exceeded)' "$LOGDIR"/lvra_rb_feature_maker.log | tail -1 | cut -c1-23)                  
   log_epoch=$(date -d "${ts/,/.}" +%s)                                                                              
   now_epoch=$(date +%s)                                                                                             
   if (( now_epoch - log_epoch < 3600 )); then                                                                       
@@ -46,7 +46,7 @@ for path in "${produced_paths[@]}"; do
   
   #echo echo!
   # call python worker on this file; capture its stdout/stderr
-  $PYTHON $CODEBASE/rb_feature_maker.py "$path" >> $LOGDIR/lvra_rb_feature_maker_error.log 2>&1
+  $PYTHON $CODEBASE/rb_feature_maker.py "$path" >> $LOGDIR/lvra_rb_feature_maker.log 2>&1
 done
 
 
