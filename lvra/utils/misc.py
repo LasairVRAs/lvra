@@ -10,7 +10,8 @@ def sha256_of_file(path, chunk_size=8192):
             h.update(chunk)
     return h.hexdigest()
 
-def check_pckg_versions(env_file : Path = LVRA_ENV_FILE
+def check_pckg_versions(env_file : Path = LVRA_ENV_FILE,
+                        debug: bool = False
                         ) -> int:
     """Checks that the versions of key packages matches those required by the lvra environment file.
     The key packages checked currently are:
@@ -54,6 +55,13 @@ def check_pckg_versions(env_file : Path = LVRA_ENV_FILE
     skl_req = check_output(f"grep -oP '(?<=scikit-learn==).*' {env_file}", shell=True, text=True).strip()
     np_req = check_output(f"grep -oP '(?<=numpy==).*' {env_file}", shell=True, text=True).strip()
     joblib_req = check_output(f"grep -oP '(?<=joblib==).*' {env_file}", shell=True, text=True).strip()
+
+    if debug:
+        print("PACKAGE      | LOADED   | REQUIRED ")
+        print(f"pandas       | {pd_v}    | {pd_req}")
+        print(f"sklearn      | {skl_v}    | {skl_req}")
+        print(f"numpy        | {np_v}    | {np_req}")
+        print(f"joblib       | {joblib_v}    | {joblib_req}")
 
     try:
         assert pd_v == pd_req, f"pandas version incorrect Loaded: {pd_v} | Requirement: {pd_req}"
