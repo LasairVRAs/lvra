@@ -1,21 +1,12 @@
 from typing import Dict, Optional, Tuple
 import yaml
 from pathlib import Path
-import mlflow
-from mlflow.tracking import MlflowClient
 import logging
 import pandas as pd
 import numpy as np
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
-
-REQUIRED_CONFIG_KEYS = [
-    "EXPERIMENT",
-    "TRACKING_URI",     # e.g. file:///path/to/mlruns or http://mlflow-server:5000
-    # other keys you might require can be added here, e.g. 'PARQUET_GLOB_PATH'
-]
-
 
 def load_config(config_path: str) -> Dict:
     """
@@ -36,14 +27,6 @@ def load_config(config_path: str) -> Dict:
 
     if not isinstance(cfg, dict):
         raise ValueError(f"Config file did not contain a mapping (got {type(cfg)}).")
-
-    missing = [k for k in REQUIRED_CONFIG_KEYS if k not in cfg]
-    if missing:
-        raise ValueError(f"Missing required config keys: {missing}")
-
-    # Normalise some fields if needed
-    # e.g. ensure TRACKING_URI is a string
-    cfg['TRACKING_URI'] = str(cfg['TRACKING_URI'])
 
     return cfg
 
@@ -149,75 +132,6 @@ def resolve_model_name(cfg):
     return name
     
 
-
- #### MIGHT NOT USE MLFLOW AFTER ALL   
-
-
-def setup_mlflow(cfg: Dict, experiment_create_if_missing: bool = True
-                 ) -> Tuple[MlflowClient, str, Optional[dict]]:
-    """
-    Configure MLflow and return a client, the experiment_id, and metadata about the
-    latest successful run (or None if there is none).
-
-    Parameters:
-        cfg: configuration dict. Must contain keys 'TRACKING_URI' and 'EXPERIMENT'.
-        experiment_create_if_missing: if True, create the experiment when missing.
-
-    Returns:
-        (client, experiment_id, last_successful_run_info_or_None)
-
-    Notes:
-        - This is intentionally lightweight: it DOES NOT download artifacts or models.
-        - It tags the active process by setting mlflow.set_tracking_uri and mlflow.set_experiment.
-    """
-    if 'TRACKING_URI' not in cfg or 'EXPERIMENT' not in cfg:
-        raise ValueError("cfg must contain 'TRACKING_URI' and 'EXPERIMENT' keys.")
-
-    tracking_uri = cfg['TRACKING_URI']
-    experiment_name = cfg['EXPERIMENT']
-
-    # Configure MLflow client
-    mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment(experiment_name)
-    client = MlflowClient(tracking_uri)
-
-    # Ensure experiment exists (MlflowClient.get_experiment_by_name returns None if missing)
-    experiment = client.get_experiment_by_name(experiment_name)
-    if experiment is None:
-        if experiment_create_if_missing:
-            experiment_id = client.create_experiment(experiment_name)
-            logger.info(f"Created MLflow experiment '{experiment_name}' id={experiment_id}")
-        else:
-            raise ValueError(f"Experiment '{experiment_name}' does not exist.")
-        experiment = client.get_experiment(experiment_name)
-    experiment_id = experiment.experiment_id
-
-    # Find most recent FINISHED run (if any)
-    runs = client.search_runs(
-        experiment_ids=[experiment_id],
-        filter_string="attributes.status = 'FINISHED'",
-        order_by=["start_time DESC"],
-        max_results=1,
-    )
-
-    last_run_info = None
-    if runs:
-        run = runs[0]
-        # Provide a compact dict with the fields we care about
-        last_run_info = {
-            "run_id": run.info.run_id,
-            "start_time": run.info.start_time,
-            "end_time": run.info.end_time,
-            "status": run.info.status,
-            "metrics": run.data.metrics,
-            "params": run.data.params,
-            "tags": run.data.tags,
-        }
-        logger.info(f"Found previous FINISHED run: {last_run_info['run_id']}")
-    else:
-        logger.info("No previous FINISHED runs found for this experiment.")
-
-    return client, experiment_id, last_run_info
 
 def make_training_sample(
     X_pool: pd.DataFrame,

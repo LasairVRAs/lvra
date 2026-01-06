@@ -3,3 +3,4 @@ my_topic: lasair_83vra-dev
 #group_id: test_ox8
 group_id: test_test10
 base_dir: /home/stevance/oxlvra_dev/data/vra_data
+endpoint: https://lasair-lsst-dev.lsst.ac.uk/api
