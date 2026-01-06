@@ -9,7 +9,7 @@ JSONDIR=/home/lasair/data/vra_data/JSON
 
 # EVERYTHING BELOW CAN BE COPY PASTED BETWEEN LOCAL AND REMOTE
 CONSUMER_LOG=$LOGDIR/lvra_kafka_consumer.log
-FEATURE_LOG=$LOGDIR/feature_rb_v1.log
+FEATURE_LOG=$LOGDIR/lvra_rb_feature_maker.log
 #SAFETY_SEC=120
 
 # 1. If any .jsn.tmp exist, exit (consumer still running)
@@ -46,7 +46,7 @@ for path in "${produced_paths[@]}"; do
   
   #echo echo!
   # call python worker on this file; capture its stdout/stderr
-  $PYTHON $CODEBASE/rb_feature_maker.py "$path" >> $LOGDIR/lvra_rb_feature_maker.log 2>&1
+  $PYTHON $CODEBASE/rb_feature_maker.py "$path" >> $FEATURE_LOG 2>&1
 done
 
 
