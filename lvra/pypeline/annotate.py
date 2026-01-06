@@ -15,6 +15,10 @@ _stream_handler = logging.StreamHandler()
 _stream_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logger.addHandler(_stream_handler)
 
+# TODO: Add function to check the environemnt is correct. Since need it here and jupyter notebooks
+# it should probably be in utils somewhere. 
+# TODO: Add comments and docstrings in here!
+
 
 def predict(X: pd.DataFrame, model):
     # keep only ids + model input columns as user expected; model.predict_proba expects full X.

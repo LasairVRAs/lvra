@@ -30,7 +30,7 @@ for path in "${produced_paths[@]}"; do
   #fi
 
   #check if we have exceeded the reqest limit in the last hour, if yes, exit program                                          
-  ts=$(grep -oP '.*(?=exceeded)' "$LOGDIR"/lvra_rb_feature_maker.log | tail -1 | cut -c1-23)                  
+  ts=$(grep -oP '.*(?=exceeded)' "$FEATURE_LOG" | tail -1 | cut -c1-23)                  
   log_epoch=$(date -d "${ts/,/.}" +%s)                                                                              
   now_epoch=$(date +%s)                                                                                             
   if (( now_epoch - log_epoch < 3600 )); then                                                                       
