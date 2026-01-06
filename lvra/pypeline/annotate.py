@@ -7,8 +7,6 @@ import yaml
 import joblib
 import pandas as pd
 import lasair
-import traceback
-from datetime import datetime
 
 # --- logging setup (stdout + file handler will be set after config read) ---
 logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
