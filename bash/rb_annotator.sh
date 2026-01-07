@@ -42,8 +42,8 @@ for path in "${produced_paths[@]}"; do
   # MODEL_NAME="009_rbscore_LR0p1_MaxI30_RS42_SSnsr_sampling"
   MODEL_NAME="005_rbscore_LR0p1_MaxI30_RS42_SSnsr_sampling.joblib"
   ANNOT_NAME="vra_rb_v2"
-  
-  # IF WANT DEBUG MODE WHERE CAN SEE THE PYTHON LIBRARIES REQUIREMENT VS LOADED                                        
+
+  # IF WANT DEBUG MODE WHERE DON'T DO API CALL CAN SEE THE PYTHON LIBRARIES REQUIREMENT VS LOADED                                        
   # ADD --debug AFTER "$fname" 
   "$PYTHON" "$CODEBASE/annotate.py" "$ANNOT_NAME" "$MODEL_NAME" "$fname" --debug >> "$ANNOT_LOG" 2>&1 || {
     echo "$(date -Is) Exited with non-zero, Python code must have returned an error for $fname" >> "$ANNOT_LOG"

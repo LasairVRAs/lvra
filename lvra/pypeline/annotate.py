@@ -24,7 +24,9 @@ def predict(indexed_features: pd.DataFrame,
             columns_to_exclude = ['diaObjectId', 
                                   'diaSourceId', 
                                   'sherlock_classifications', 
-                                  'UTC']
+                                  'UTC',
+                                  'tns_name'
+                                  ]
            ):
     # make a dataframe to store our predictions with our indexes
     preds_df = indexed_features[['diaObjectId', 'diaSourceId']].copy()
