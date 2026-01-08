@@ -24,7 +24,7 @@ dependencies = [
     "lasair",
     "confluent_kafka",
     "fastparquet",     
-    "sklearn",
+    "scikit-learn",
     "joblib"                                                                                                      
 ]                                                                                                                            
 # dynamic = ["version"]                                                                                                        
