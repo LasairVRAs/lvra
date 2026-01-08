@@ -180,7 +180,7 @@ def interactive_labeling(
             # choose URL
             url = url_template.format(oid=oid) 
 
-            print(f"\n{i+1}/{total} - mjd={row.get('mjd', '(unknown)')} - diaSourceId={sid} diaObjectId={oid or '(unknown)'}")
+            print(f"\n{i+1}/{total} - mjd={row.get('lastDiaSourceMjdTai', '(unknown)')} - diaSourceId={sid} diaObjectId={oid or '(unknown)'}")
             try:
                 opener(url)
             except Exception as e:
