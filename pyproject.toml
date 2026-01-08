@@ -16,16 +16,16 @@ requires-python = ">=3.11"
 keywords = ["astronomy", "LSST", "Rubin Observatory"]                                                                                        
 license = {text = "BSD-3-Clause"}                                                                                            
 dependencies = [                                                                                                             
-    "numpy", 
-    "pandas",                                                                                                            
+    "numpy==2.3.5", 
+    "pandas==2.3.3",                                                                                                            
     "requests",                                                                                                              
     "tqdm",                                                                                                                  
     "pyyaml",
     "lasair",
     "confluent_kafka",
     "fastparquet",     
-    "scikit-learn",
-    "joblib"                                                                                                      
+    "scikit-learn==1.8.0",
+    "joblib==1.5.2"                                                                                                      
 ]                                                                                                                            
 # dynamic = ["version"]                                                                                                        
                                                                                                                              
