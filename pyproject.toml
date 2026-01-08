@@ -23,7 +23,9 @@ dependencies = [
     "pyyaml",
     "lasair",
     "confluent_kafka",
-    "fastparquet",                                                                                                           
+    "fastparquet",     
+    "sklearn",
+    "joblib"                                                                                                      
 ]                                                                                                                            
 # dynamic = ["version"]                                                                                                        
                                                                                                                              
