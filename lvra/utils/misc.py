@@ -47,7 +47,10 @@ def check_pckg_versions(env_file : Path = LVRA_ENV_FILE,
     if not p.exists():
         raise FileNotFoundError(f"{p} does not exist")
 
-    import pandas, sklearn, numpy, joblib
+    import pandas
+    import sklearn
+    import numpy
+    import joblib
     pd_v, skl_v, np_v, joblib_v = pandas.__version__, sklearn.__version__, numpy.__version__, joblib.__version__
 
     from subprocess import check_output
