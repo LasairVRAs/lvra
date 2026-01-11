@@ -9,7 +9,7 @@ JSONDIR=/home/lasair/data/vra_data/JSON
 
 # EVERYTHING BELOW CAN BE COPY PASTED BETWEEN LOCAL AND REMOTE
 CONSUMER_LOG=$LOGDIR/lvra_kafka_consumer.log
-FEATURE_LOG=$LOGDIR/feature_rb_v1.log
+FEATURE_LOG=$LOGDIR/lvra_rb_feature_maker.log
 #SAFETY_SEC=120
 
 # 1. If any .jsn.tmp exist, exit (consumer still running)
@@ -29,6 +29,15 @@ for path in "${produced_paths[@]}"; do
   #   continue
   #fi
 
+  #check if we have exceeded the reqest limit in the last hour, if yes, exit program                                          
+  ts=$(grep -oP '.*(?=exceeded)' "$LOGDIR"/lvra_rb_feature_maker.log | tail -1 | cut -c1-23)                  
+  log_epoch=$(date -d "${ts/,/.}" +%s)                                                                              
+  now_epoch=$(date +%s)                                                                                             
+  if (( now_epoch - log_epoch < 3600 )); then                                                                       
+    echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") Exceeded request limit recently; exiting"                                
+    exit 1                                                                                                          
+  fi    
+
   # skip if already processed successfully
   if grep -q "SUCCESS feature=rb_v1 inpath=${path}" "$FEATURE_LOG"; then
      #echo $path found so already don
@@ -37,7 +46,7 @@ for path in "${produced_paths[@]}"; do
   
   #echo echo!
   # call python worker on this file; capture its stdout/stderr
-  $PYTHON $CODEBASE/rb_feature_maker.py "$path" >> $LOGDIR/lvra_rb_feature_maker.log 2>&1
+  $PYTHON $CODEBASE/rb_feature_maker.py "$path" >> $FEATURE_LOG 2>&1
 done
 
 
