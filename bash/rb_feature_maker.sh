@@ -37,7 +37,7 @@ for path in "${produced_paths[@]}"; do
   
   #echo echo!
   # call python worker on this file; capture its stdout/stderr
-  $PYTHON $CODEBASE/rb_feature_maker.py "$path" >> $LOGDIR/lvra_rb_feature_maker_error.log 2>&1
+  $PYTHON $CODEBASE/rb_feature_maker.py "$path" >> $LOGDIR/lvra_rb_feature_maker.log 2>&1
 done
 
 

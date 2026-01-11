@@ -55,7 +55,7 @@ def main():
     try:
         f.write("[\n")
         n = 0
-        while n < 4000:
+        while n < 10_000:
             msg = consumer.poll(timeout=20)
             if msg is None:
                 break
