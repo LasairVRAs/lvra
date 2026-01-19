@@ -19,7 +19,7 @@ if ls "$JSONDIR"/*.jsn.tmp 1> /dev/null 2>&1; then
 fi
 
 # 2. pick recent produced entries (oldest-first) and filter out already processed
-mapfile -t produced_paths < <(grep 'PRODUCED' "$CONSUMER_LOG" | tail -n 50 | awk -F'path=' '{print $2}' | awk '{print $1}')
+mapfile -t produced_paths < <(grep 'PRODUCED' "$CONSUMER_LOG" | tail -n 1000 | awk -F'path=' '{print $2}' | awk '{print $1}')
 for path in "${produced_paths[@]}"; do
   #echo $path
   # check safety window using file timestamp or parse timestamp from the PRODUCED line

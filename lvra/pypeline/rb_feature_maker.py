@@ -3,6 +3,7 @@ from pathlib import Path
 import os
 from lvra.utils.features import FeaturesRealBogus
 import sys
+import yaml
 
 logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 logging.basicConfig(level=logging.INFO,
@@ -21,6 +22,19 @@ INPUT_PATH = Path(sys.argv[1])
 JSON_DIR_NAME = "JSON"
 CSV_DIR_NAME = "csv"
 FEATURE_SUFFIX = "rb_v1"  # becomes myfile.rb_v1.csv
+
+# Get the "public settings" from the environment or grab the default. 
+env_settings = os.environ.get("LVRA_SETTINGS")
+if env_settings:                                 # from environment variable
+    settings_path = Path(env_settings)
+else:                                            # or go to default file
+    settings_path = Path(__file__).resolve().parent.parent.parent / "data" / "public_settings.yaml"
+
+
+with settings_path.open("r") as settings:
+    config = yaml.safe_load(settings)
+    ENDPOINT= config['endpoint']                # url endpoint Lasair
+
 
 try:
     parent = INPUT_PATH.parent
@@ -42,8 +56,8 @@ except Exception as e:
 def main():
     logger.info(f"START feature=rb_v1 inpath={INPUT_PATH} outpath={OUTPUT_PATH}") 
     try:
-        features_df = (FeaturesRealBogus.from_json(INPUT_PATH
-                                                   ).pipe(FeaturesRealBogus.add_diasource_features))
+        _df = FeaturesRealBogus.from_json(INPUT_PATH)
+        features_df = FeaturesRealBogus.add_diasource_features(df=_df, endpoint=ENDPOINT)
 
         # not writing a temp file for atomicity because
         # it's just one step, either it writes out or it doesn't
