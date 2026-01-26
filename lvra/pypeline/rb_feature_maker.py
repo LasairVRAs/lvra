@@ -20,15 +20,20 @@ INPUT_PATH = Path(sys.argv[1])
 #   OUTPUT: data/lvra/csv/20251204_100000.rb_v1.csv
 JSON_DIR_NAME = "JSON"
 CSV_DIR_NAME = "csv"
-FEATURE_SUFFIX = "rb_v1"  # becomes myfile.rb_v1.csv
+# TODO: should be hard coded
+FEATURE_SUFFIX = "rb_v1"  # becomes myfile.rb_v1.csv 
 
 try:
+    # TODO: this will fail when restructure into nested riectory structure
+    # JSON -> year -> day. Also not sure what this check actually does. 
     parent = INPUT_PATH.parent
     if parent.name != JSON_DIR_NAME:
         # still try to replace, but warn
         logger.warning(f"Expected parent dir '{JSON_DIR_NAME}', got '{parent.name}'. Input was {INPUT_PATH}. Attempting replacement.")
 
     # Replace JSON/ → csv/
+    # TODO: when directory structure has changed to ndexted year/day his will need
+    # to be updated as well. (But the nested strucgture will be the same under CSV)
     OUTPUT_DIR = parent.parent / CSV_DIR_NAME
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -41,6 +46,7 @@ except Exception as e:
 
 def main():
     logger.info(f"START feature=rb_v1 inpath={INPUT_PATH} outpath={OUTPUT_PATH}") 
+    #TODO: add the OUTPUT_PATH to SQLite feature tracking table
     try:
         features_df = (FeaturesRealBogus.from_json(INPUT_PATH
                                                    ).pipe(FeaturesRealBogus.add_diasource_features))
