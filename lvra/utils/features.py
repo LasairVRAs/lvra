@@ -3,7 +3,7 @@ from pathlib import Path
 from lasair import lasair_client as lclient
 import os
 
-endpoint = "https://lasair-lsst-dev.lsst.ac.uk/api"
+#endpoint = "https://lasair-lsst-dev.lsst.ac.uk/api"
 token = os.getenv('LASAIR_LSST_TOKEN')
 
 
@@ -38,7 +38,8 @@ subfields_diasource = ['diaObjectId',
 ]
 
 def diasource_api_call(diaObjectId_list: list, 
-                       subset_fields:list = None
+                       subset_fields:list = None,
+                       endpoint: str = None
                        ) -> pd.DataFrame:
     """
     Call Lasair API to gather the most recent diaSource fields for a list of diaObjectIds
@@ -189,7 +190,8 @@ class FeaturesRealBogus(Features):
     @classmethod
     def add_diasource_features(cls, 
                                df: pd.DataFrame, 
-                               subset_fields: list = subfields_diasource
+                               subset_fields: list = subfields_diasource,
+                               endpoint: str = None
                                ) -> pd.DataFrame:
         """Takes the features dataframe and adds diaSource features by calling Lasair API
         
@@ -217,7 +219,8 @@ class FeaturesRealBogus(Features):
             raise KeyError("Input dataframe must contain 'diaObjectId' column to add diaSource features.")
 
         # 2. call your API function
-        dias_df = diasource_api_call(ids, subset_fields=subset_fields)
+        # TODO: add try except for the endpoint
+        dias_df = diasource_api_call(ids, subset_fields=subset_fields, endpoint=endpoint)
 
         # 3. join back onto the original df
         # dias_df must have 'diaObjectId' as a column or index
