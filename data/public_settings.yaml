@@ -1,5 +1,5 @@
 kafka_server: lasair-lsst-kafka_pub.lsst.ac.uk:9092
-my_topic: lasair_18lvra-fodder-testbla
+my_topic: lasair_18lvra-fodder-testbla2
 #my_topic: lasair_18lvra-fodder
 #my_topic: lasair_83vra-dev
 group_id: test_ox1

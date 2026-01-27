@@ -17,6 +17,13 @@ if env_settings:                                 # from environment variable
 else:                                            # or go to default file
     settings_path = Path(__file__).resolve().parent.parent / "data" / "public_settings.yaml"
 
+# The data subdirectories are organised in several levels: TYPE > YYYY > YYYYMMDD
+# so our logs and JSONS would end up in the folders:
+# $base_dir/2026/20260127 and $base_dir/JSON/2026/20260127 respectively
+# So I need the current year and day in that format to make the directories
+current_year = datetime.utcnow().strftime("%Y")
+current_day = datetime.utcnow().strftime("%Y%m%d")
+sub_dir = Path(current_year) / Path(current_day)
 
 with settings_path.open("r") as settings:
     config = yaml.safe_load(settings)
@@ -24,9 +31,9 @@ with settings_path.open("r") as settings:
     my_topic = config['my_topic']                # topic associated with filter
     group_id = config['group_id']                # id used to keep your "place" in queue
     base_dir = Path(config['base_dir'])          # base directory for data storage
-    json_data_dir = base_dir / "JSON"            # JSON output directory
-    log_dir = base_dir / "logs"                  # log directory 
-    LOG_DB = base_dir / "db" / "log.db"          # sqlite log db
+    json_data_dir = base_dir / "JSON" / sub_dir  # JSON output directory
+    log_dir = base_dir / "logs" / sub_dir        # log directory 
+    LOG_DB = base_dir / "db" / "log.db"          # sqlite log db NOT IN A YEAR/DAY SUBDIR
 
 # create the directories if they do not exist - this mostly occurs in testing
 json_data_dir.mkdir(parents=True, exist_ok=True)
