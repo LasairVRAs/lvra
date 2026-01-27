@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import os
+import sqlite3
 
 logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 
@@ -25,6 +26,7 @@ with settings_path.open("r") as settings:
     base_dir = Path(config['base_dir'])          # base directory for data storage
     json_data_dir = base_dir / "JSON"            # JSON output directory
     log_dir = base_dir / "logs"                  # log directory 
+    LOG_DB = base_dir / "db" / "log.db"          # sqlite log db
 
 # create the directories if they do not exist - this mostly occurs in testing
 json_data_dir.mkdir(parents=True, exist_ok=True)
@@ -44,8 +46,8 @@ def main():
                                my_topic)
 
     # make a timestamped file for this poll/run
-    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    out_path = json_data_dir / f"{ts}.json" # with_suffix below REPLACES the .json
+    stem = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    out_path = json_data_dir / f"{stem}.json" # with_suffix below REPLACES the .json
     tmp_path = out_path.with_suffix(".jsn.tmp")  # <-- temporary while writing
 
 
@@ -94,7 +96,20 @@ def main():
         else:
             # Atomically replace any existing final file with the tmp file
             os.replace(str(tmp_path), str(out_path))
-            logger.info(f"PRODUCED path={out_path} n={written}")
+            # TODO: add sqlite3 line to add a row to the feature_making and annotating table
+            # with the timestamp (stem) as primary key
+
+            con = sqlite3.connect(LOG_DB)             # create connect to log database
+            cur = con.cursor()                        # we need a cursor to do read/write operations
+            sql_feature_making = "INSERT INTO feature_making (stem, r0b) VALUES ('%s', 0)" % stem
+            sql_annotating = "INSERT INTO annotating (stem, r0b) VALUES ('%s', 0)" % stem
+            cur.execute(sql_feature_making)
+            cur.execute(sql_annotating)
+            con.commit()
+            con.close()
+
+            # Log
+            logger.info(f"PRODUCED path={out_path} n={written} | row added to log tables stem={stem}")
     except Exception:
         # If rename or cleanup fails, log it and leave temp file for inspection
         logger.exception("Error finalizing output file; temporary file left for inspection.")

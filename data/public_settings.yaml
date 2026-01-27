@@ -1,10 +1,12 @@
 kafka_server: lasair-lsst-kafka_pub.lsst.ac.uk:9092
-my_topic: lasair_18lvra-fodder
+my_topic: lasair_18lvra-fodder-testbla
+#my_topic: lasair_18lvra-fodder
 #my_topic: lasair_83vra-dev
 group_id: test_ox1
 #group_id: test
 #json_data_dir: /home/lasair/data/vra_data/JSON/
-base_dir: /home/lasair/data/vra_data/
+#base_dir: /home/lasair/data/vra_data/
+base_dir: /home/lasair/data/lvra/
 endpoint: http://localhost:8080/api
 #endpoint: https://lasair.lsst.ac.uk/api
 #endpoint: https://lasair-lsst-dev.lsst.ac.uk/api
