@@ -35,7 +35,8 @@ with settings_path.open("r") as settings:
     log_dir = base_dir / "logs" / sub_dir        # log directory 
     LOG_DB = base_dir / "db" / "log.db"          # sqlite log db NOT IN A YEAR/DAY SUBDIR
 
-# create the directories if they do not exist - this mostly occurs in testing
+# create the directories if they do not exist - this happens if it is the first job of the day
+# since our data file strucure is TYPE > YEAR > DAY 
 json_data_dir.mkdir(parents=True, exist_ok=True)
 log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -108,10 +109,10 @@ def main():
 
             con = sqlite3.connect(LOG_DB)             # create connect to log database
             cur = con.cursor()                        # we need a cursor to do read/write operations
-            sql_feature_making = "INSERT INTO feature_making (stem, r0b) VALUES ('%s', 0)" % stem
-            sql_annotating = "INSERT INTO annotating (stem, r0b) VALUES ('%s', 0)" % stem
-            cur.execute(sql_feature_making)
-            cur.execute(sql_annotating)
+            sql_feature_making = "INSERT INTO feature_making (stem, r0b) VALUES (?, 0)"
+            sql_annotating = "INSERT INTO annotating (stem, r0b) VALUES (?, 0)"
+            cur.execute(sql_feature_making, (stem,))
+            cur.execute(sql_annotating, (stem,))
             con.commit()
             con.close()
 
