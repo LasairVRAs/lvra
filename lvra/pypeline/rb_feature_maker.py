@@ -21,7 +21,7 @@ INPUT_PATH = Path(sys.argv[1])
 #   OUTPUT: data/lvra/csv/20251204_100000.rb_v1.csv
 JSON_DIR_NAME = "JSON"
 CSV_DIR_NAME = "csv"
-# TODO: should be hard coded
+# TODO: should NOT be hard coded
 FEATURE_SUFFIX = "rb_v1"  # becomes myfile.rb_v1.csv 
 
 # Get the "public settings" from the environment or grab the default. 
@@ -30,7 +30,6 @@ if env_settings:                                 # from environment variable
     settings_path = Path(env_settings)
 else:                                            # or go to default file
     settings_path = Path(__file__).resolve().parent.parent.parent / "data" / "public_settings.yaml"
-
 
 with settings_path.open("r") as settings:
     config = yaml.safe_load(settings)
@@ -59,10 +58,17 @@ except Exception as e:
     sys.exit(1)
 
 def main():
-    logger.info(f"START feature=rb_v1 inpath={INPUT_PATH} outpath={OUTPUT_PATH}") 
+    
     #TODO: add the OUTPUT_PATH to SQLite feature tracking table
+    # TODO: add also the stem used as primary key for SQLite
+    logger.info(f"START feature=rb_v1 inpath={INPUT_PATH} outpath={OUTPUT_PATH}") 
     try:
         _df = FeaturesRealBogus.from_json(INPUT_PATH)
+        # TODO: if Lasair provides an option to return the whole alert
+        # then instead of an object hat has hard coded columns, I can have a separate
+        # config file for each model that srates which columns are needed, and then
+        # I don't need a new features object, I can just real the json with pandas
+        # and do column selection. 
         features_df = FeaturesRealBogus.add_diasource_features(df=_df, endpoint=ENDPOINT)
 
         # not writing a temp file for atomicity because
@@ -72,13 +78,17 @@ def main():
         features_df.to_csv(OUTPUT_PATH, index=False)
 
         logger.info(f"SUCCESS feature=rb_v1 inpath={INPUT_PATH} outpath={OUTPUT_PATH}")
+        # TODO: ammend log feature version, stem and say ti's in SQLite table 
+        # TODO: add also the stem used as primary key for SQLite
         return 0
 
     except FileNotFoundError:
-        logger.error(f"FAILfeature=rb_v1 inpath={INPUT_PATH} reason=FileNotFound")
+        logger.error(f"FAIL feature=rb_v1 inpath={INPUT_PATH} reason=FileNotFound")
+        # TODO: record in SQLite with specific error code (e.g. 2) ? 
         return 1
     except Exception as e:
         logger.error(f"FAIL feature=rb_v1 inpath={INPUT_PATH} reason={e}")
+        # TODO: record in sqlite with error code 99 (generic error code)
         return 1
 
 

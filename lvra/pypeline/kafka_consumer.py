@@ -94,6 +94,7 @@ def main():
         else:
             # Atomically replace any existing final file with the tmp file
             os.replace(str(tmp_path), str(out_path))
+            # TODO: add json STEM to SQLite tracking table
             logger.info(f"PRODUCED path={out_path} n={written}")
     except Exception:
         # If rename or cleanup fails, log it and leave temp file for inspection

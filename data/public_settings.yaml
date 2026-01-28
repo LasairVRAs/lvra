@@ -5,7 +5,7 @@ group_id: test_ox1
 #group_id: test
 #json_data_dir: /home/lasair/data/vra_data/JSON/
 base_dir: /home/lasair/data/vra_data/
-endpoint: http://localhost:8080/api
+endpoint: http://localhost:8012/api
 #endpoint: https://lasair.lsst.ac.uk/api
 #endpoint: https://lasair-lsst-dev.lsst.ac.uk/api
 
