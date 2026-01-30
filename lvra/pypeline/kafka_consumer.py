@@ -42,8 +42,8 @@ log_dir.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s",
-                    handlers=[logging.FileHandler(log_dir / "lvra_kafka.log"),
-                        logging.StreamHandler()
+                    handlers=[logging.FileHandler(log_dir / "kafka.log"),
+                        #logging.StreamHandler()
                     ])
 
 
