@@ -112,6 +112,7 @@ def main():
         else:
             # Atomically replace any existing final file with the tmp file
             os.replace(str(tmp_path), str(out_path))
+
             # TODO: add sqlite3 line to add a row to the feature_making and annotating table
             # with the timestamp (stem) as primary key
 
@@ -138,6 +139,7 @@ def main():
 
             # Log
             logger.info(f"PRODUCED path={out_path} n={written} | row added to log tables stem={stem}")
+
     except Exception:
         # If rename or cleanup fails, log it and leave temp file for inspection
         logger.exception("Error finalizing output file; temporary file left for inspection.")

@@ -7,6 +7,7 @@ import yaml
 import joblib
 import pandas as pd
 import lasair
+import lvra.utils as lutils
 
 # --- logging setup (stdout + file handler will be set after config read) ---
 logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
@@ -15,10 +16,25 @@ _stream_handler = logging.StreamHandler()
 _stream_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logger.addHandler(_stream_handler)
 
+# TODO: Add comments and docstrings in here!
+# TODO: tests 
 
-def predict(X: pd.DataFrame, model):
-    # keep only ids + model input columns as user expected; model.predict_proba expects full X.
-    preds_df = X[['diaObjectId', 'diaSourceId']].copy()
+def predict(indexed_features: pd.DataFrame, 
+            model, 
+            columns_to_exclude = ['diaObjectId', 
+                                  'diaSourceId', 
+                                  'sherlock_classifications', 
+                                  'UTC',
+                                  'tns_name'
+                                  ]
+           ):
+    # make a dataframe to store our predictions with our indexes
+    preds_df = indexed_features[['diaObjectId', 'diaSourceId']].copy()
+    
+    # exclude columns that don't belong in features
+    X = indexed_features.drop(columns=columns_to_exclude, errors='ignore')
+    logger.info(f"Dropped columns not needed for prediction: {columns_to_exclude}")
+    
     prob = model.predict_proba(X)
     # sklearn returns Nx2 for binary; take column 1
     preds_df['pred'] = prob[:, 1]
@@ -45,6 +61,14 @@ def annotate_object(objectId, score_i, L, topic_out, classdict, version='0.1'):
 
 
 def main(annotator: str, model_name: str, features_path: str, debug: bool=False):
+    # Check the python libraries we need to run are correct
+    try:
+        lutils.check_pckg_versions(debug=debug)
+        logger.info("[INFO] Key python library version checks passed")
+    except (FileNotFoundError, RuntimeError) as e:
+        logger.error(f"[ERROR] Environment check failed: {e}")
+        return 2
+
     # load settings
     env_settings = os.environ.get("LVRA_SETTINGS")
     if env_settings:
@@ -95,18 +119,18 @@ def main(annotator: str, model_name: str, features_path: str, debug: bool=False)
 
     # quick read with safe options
     try:
-        X = pd.read_csv(csv_path)
+        indexed_features = pd.read_csv(csv_path)
     except Exception:
         logger.exception("Failed to read features CSV")
         logger.info(f"FAIL annotate model={model_name} inpath={features_path} reason=csv_read_error")
-        return 2
 
-    nrows = len(X)
+    nrows = len(indexed_features)
     logger.info(f"Loaded {nrows} rows from {csv_path}")
     if nrows == 0:
         logger.info("Zero rows to annotate; nothing to do.")
         logger.info(f"SUCCESS annotate model={model_name} inpath={features_path} rows=0")
         return 0
+    
 
     # create lasair client
     token = os.getenv("LASAIR_LSST_TOKEN")
@@ -119,7 +143,7 @@ def main(annotator: str, model_name: str, features_path: str, debug: bool=False)
 
     # predictions
     try:
-        scores = predict(X, model)
+        scores = predict(indexed_features, model)
     except Exception:
         logger.exception("Prediction failed")
         logger.info(f"FAIL annotate model={model_name} inpath={features_path} reason=prediction_error")

@@ -47,7 +47,7 @@ def _parse_logs_for_added(logs_dir: Path):
 def update_X_pool(csv_dir: str = CSV_DIR, 
                   logs_dir: str = LOG_DIR, 
                   pool_dir: str = POOL_DIR,
-                  index_col="diaObjectId"
+                  index_col="diaSourceId"
                   ):
 
     log_path = logs_dir / LOG_FILENAME
@@ -80,7 +80,7 @@ def update_X_pool(csv_dir: str = CSV_DIR,
     metadata_tolog = [] 
     for csv_path, sha in sorted(to_add):
         try:
-            df = pd.read_csv(csv_path, dtype={index_col: str, 'diaSourceId': str})
+            df = pd.read_csv(csv_path, dtype={index_col: str, 'diaSourceId': str, 'diaObjectId': str})
         except Exception as e:
             logger.error(f"Failed to read CSV {csv_path}: {e}")
             continue
