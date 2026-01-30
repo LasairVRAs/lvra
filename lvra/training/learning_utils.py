@@ -82,7 +82,7 @@ def load_metrics(model_name, METRICS_DIR):
                                      'recall',
                                      'f1-score',
                                      'timestamp',
-                                     'model_name'
+                                     'model_flavour'
                                     ])
     else:
         df = pd.read_csv(str(path.expanduser()), index_col=0)

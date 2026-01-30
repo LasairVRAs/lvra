@@ -1,0 +1,100 @@
+{
+"at_report": {
+"0": { 
+"ra": { 
+"value": "10:20:30.04",
+"error": "0.5",
+"units": "arcsec"
+},
+"dec": {
+"value": "+20:30:40.05",
+"error": "0.5",
+"units": "arcsec"
+},
+"reporting_groupid": "111", 
+"data_source_groupid": "165", 
+"reporter": "H.F.Stevance and the gang",
+"discovery_datetime": "2016-03-01.234",
+"at_type": "1",
+"host_name": "NGC 1234",
+"host_redshift": "",
+"internal_name": "",
+"internal_name_format": { 
+"prefix": "prefixStr", 
+"year_format": "YY", 
+"postfix": "postfixStr"
+},
+"auto_class": [ 
+{ 
+"algorithm": "algo1",
+"version": "1.1",
+"objtypeid": 3,
+"prob": 0.8,
+"additional_params": []
+},
+{
+"algorithm": "algo1",
+"version": "1.1",
+"objtypeid": 5,
+"prob": 0.2,
+"additional_params": []
+}
+],
+"remarks": "",
+"end_prop_period": "", 
+"prop_period_groups": [ ],
+"non_detection": { 
+"obsdate": "2016-02-28.123",
+"limiting_flux": "21.5", 
+"flux_unitid": "1",
+"filterid": "50", 
+"instrumentid": "103", 
+"exptime": "60",
+"observer": "Robot",
+"comments": "",
+"archiveid": "", 
+"archival_remarks": "" 
+},
+"photometry": {
+"0": {
+"obsdate": "2016-03-01.234",
+"flux": "100000",
+"flux_error": "316",
+"limiting_flux": "",
+"flux_unitid": "34", 
+"filterid": "160", 
+"instrumentid": "287", 
+"exptime": "30",
+"observer": "??",
+"comments": ""
+},
+"1": { 
+"obsdate": "",
+"flux": "",
+"flux_error": "",
+"limiting_flux": "",
+"flux_unitid": "",
+"filterid": "",
+"instrumentid": "",
+"exptime": "",
+"observer": "",
+"comments": ""
+}
+},
+"related_files": {
+"0": {
+"related_file_name": "FC.png",
+"related_file_comments": "Finding Chart..."
+},
+"1": {
+"related_file_name": "DiscImage.jpg",
+"related_file_comments": "Discovery image..."
+}
+},
+"internal_ids": { 
+"internal_name": "Obj_internal_name", 
+"internal_objid": "Obj_internal_id"
+}
+}
+}
+}
