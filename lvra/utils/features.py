@@ -4,7 +4,7 @@ from lasair import lasair_client as lclient
 import os
 
 #endpoint = "https://lasair-lsst-dev.lsst.ac.uk/api"
-token = os.getenv('LASAIR_LSST_TOKEN')
+token = os.getenv('LASAIR_LSST_DEV_TOKEN')
 
 
 subfields_diasource = ['diaObjectId',

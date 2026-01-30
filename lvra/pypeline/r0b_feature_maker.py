@@ -33,11 +33,9 @@ import yaml
 import sqlite3
 from datetime import datetime
 
-LOGGER = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s")
 
-LOGGER.info(f"[INIT] - r0b feature maker")
+
+
 # GET SETTINGS LOCATION: from the environment or grab the default. 
 env_settings = os.environ.get("LVRA_SETTINGS")
 if env_settings:                                 # from environment variable
@@ -50,7 +48,6 @@ else:                                            # or go to default file
 # #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-# #
  
 def set_up(settings_path: Path = SETTINGS_PATH,
-           logger = LOGGER
           ):
     """Creates the set_up dictionary
     
@@ -65,7 +62,6 @@ def set_up(settings_path: Path = SETTINGS_PATH,
     -------
     dictionary with keys: TODO -added list
     """   
-    logger.info(f" [SETUP] START")
     # TODO: add a r0b_feature_version to the yaml file to put in FEATURE_SUFFIX 
         
     # The data subdirectories are organised in several levels: TYPE > YYYY > YYYYMMDD
@@ -87,12 +83,19 @@ def set_up(settings_path: Path = SETTINGS_PATH,
                       'endpoint': config['endpoint'],                          # url endpoint Lasair
                      }
 
-    logger.info(f"[SETUP] SUCCESS")
+    LOGGER = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s",
+                    handlers=[logging.FileHandler(setup_dict['log_dir'] / "r0b_feature_maker.log"),
+                        logging.StreamHandler()
+                    ])
+    LOGGER.info(f"[INIT] - SET UP COMPLETE")
+
     
-    return setup_dict
+    return setup_dict, LOGGER 
 
 def stemlist_from_logdb(sqlite_cursor, 
-                     logger = LOGGER,
+                     logger,
                      ):
     """Takes existing cursor connected to log.db and gets stems from feature_making table where r0b column != 1
     
@@ -120,7 +123,7 @@ def stemlist_from_logdb(sqlite_cursor,
 def make_features(input_path: Path,
                   output_path: Path,
                   endpoint: str,
-                  logger=LOGGER):
+                  logger):
 
     # input: logging, input path, output path, endpoint
     # output: exit code
@@ -150,11 +153,10 @@ def make_features(input_path: Path,
 # MAIN  #
 # #-#-# #
 
-def main(logger = LOGGER, 
-         settings_path: Path = SETTINGS_PATH
+def main( settings_path: Path = SETTINGS_PATH
          ):
     # SETUP 
-    setup_dict = set_up(logger, settings_path)
+    setup_dict, logger = set_up(settings_path)
          
     # SQLITE CONNECTION
     logger.info(f"[SQLITE] START")
@@ -196,5 +198,5 @@ def main(logger = LOGGER,
     return 0 # Bash exit code 0 = SUCCESS
 
 
-if __name__ == "__main__":
-    sys.exit(main()) # exits with the code 0 or 1 dependng on if main succeeds
+if __name__=='__main__':
+    sys.exit(main())

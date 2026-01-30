@@ -5,6 +5,9 @@ PYTHON=/home/lasair/anaconda3/envs/lvra/bin/python
 LOGDIR=/home/lasair/data/vra_data/logs
 export LVRA_SETTINGS=/home/lasair/code/lvra/data/public_settings.yaml
 
-$PYTHON $CODEBASE/kafka_consumer.py >> $LOGDIR/lvra_kafka_error.log 2>&1
 
+DATE=$(date +"%Y%m%d")
+YEAR=$(date +"%Y")
+
+$PYTHON $CODEBASE/kafka_consumer.py >> $LOGDIR/$YEAR/$DATE/lvra_kafka_error.log 2>&1 
 
