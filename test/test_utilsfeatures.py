@@ -1,24 +1,12 @@
-from lvra.utils.features import FeaturesRealBogus
+from lvra.utils.features import json2cleandf
 from pathlib import Path
 
-test_json_path = Path(__file__).resolve().parent.parent / "data" / "test" /"test.json"
-test_csv_path = Path(__file__).resolve().parent.parent / "data" / "test" /"test.csv"
-# TODO: make tests for if json file wrong or other failure modes
-def test_featuresRB_from_json():
-    features = FeaturesRealBogus.from_json(test_json_path)
-    assert features.shape[0] == 2
-    # HFS 2026-01-06: I removed this assertion because I, for now, do not trim columns
-    #assert features.shape[1] == len(FeaturesRealBogus.columns)
+test_json_path = Path(__file__).resolve().parent.parent / "data" / "test" /"20260202_102448.json"
+test_csv_path = Path(__file__).resolve().parent.parent / "data" / "test" /"20260202_102448.csv"
 
-def test_featuresRB_from_csv():
-    features = FeaturesRealBogus.from_csv(test_csv_path)
-    assert features.shape[0] == 2
-    #assert features.shape[1] == len(FeaturesRealBogus.columns)
 
-def test_featuresRB_from_dataframe():
-    import pandas as pd
-    df = pd.read_json(test_json_path)
-    features = FeaturesRealBogus.from_dataframe(df)
-    assert features.shape[0] == 2
-    #assert features.shape[1] == len(FeaturesRealBogus.columns)
-
+def test_json2cleandf():
+    clean_df = json2cleandf(test_json_path)
+    # NOTE: This is test file specific
+    assert clean_df.shape[0] == 44, "The clean data frame should have 44 rows. WARNING: TEST FILE SPECIFIC"
+    assert clean_df.shape[1] == 119, "The clean data frame should have 119 columns. WARNING: TEST FILE SPECIFIC"

@@ -4,12 +4,25 @@
 export PYTHONPATH=/home/lasair/code/lvra/
 CODEBASE=/home/lasair/code/lvra/lvra/pypeline
 PYTHON=/home/lasair/anaconda3/envs/lvra/bin/python
-LOGDIR=/home/lasair/data/lvra/logs
+LOGBASE=/home/lasair/data/lvra/logs
 
 DATE=$(date +"%Y%m%d")                                                          
 YEAR=$(date +"%Y")
 
-$PYTHON $CODEBASE/r0b_feature_maker.py  >> $LOGDIR/$YEAR/$DATE/r0b_feature_maker_error.log  2>&1
+LOGDIR=$LOGBASE/$YEAR/$DATE
+ERR_LOG_NAME=$LOGDIR/r0b_feature_maker_error.log
+
+if [ ! -d "$LOGDIR" ]; then
+  echo "$LOGDIR does not exist. Creating."
+  mkdir -p $LOGDIR
+fi
+
+if [ ! -f "$ERR_LOG_NAME" ]; then
+  echo "$ERR_LOG_NAME does not exist. Creating."
+  touch $ERR_LOG_NAME
+fi
+
+$PYTHON $CODEBASE/r0b_feature_maker.py  >> $ERR_LOG_NAME  2>&1
 
 
 

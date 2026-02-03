@@ -1,7 +1,25 @@
-from lvra.utils.misc import sha256_of_file
+from lvra.utils.misc import sha256_of_file, set_up
 from pathlib import Path
+import os 
 
 test_csv_path = Path(__file__).resolve().parent.parent /"data"/"test"/"test.csv"
+
+
+# TEST SETUP FUNCTION
+env_settings = os.environ.get("LVRA_SETTINGS")
+if env_settings:                                 # from environment variable
+    SETTINGS_PATH = Path(env_settings)
+else:                                            # or go to default file
+    SETTINGS_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "public_settings.yaml"
+
+def test_set_up():
+    setup_dict, logger = set_up(settings_path=SETTINGS_PATH,
+                                log_name="test_utilsmisc.log")
+    expected_keys = ['base_dir', 'json_dir', 'csv_dir', 'log_dir', 'log_db', 'endpoint']
+    for key in expected_keys:
+        assert key in setup_dict, f"Key '{key}' missing from setup_dict"
+
+
 
 def test_sha256_of_file():
     expected_hash = "97ba3a1e1deaed49545954920f2ccfcece1b56216c54b692c10ad0f511ead6ac"

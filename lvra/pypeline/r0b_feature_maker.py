@@ -8,92 +8,50 @@ looks for the "public_seetings.yaml" file located in ../../../data/
 returns a list of stems for json files whose features have not been successfully extracted for r0b
 * 3) opens the corresponding json files, extracts the features and then outputs the csv files
 
-
-Dev Notes: 
-#TODO: Major Logic change!
-# currently the bash script reads the logs and calles this with a filename.json as an argument
-# INPUT_PATH here. Instead what we can do is:
-# 1. create sqlite connection
-# 2. create an sqlite cursor 
-# 3. find all stems (index primary ley) where r0b (column) != 1 (1=SUCCESS)
-# SELECT stem from feature_making WHERE r0b != 1; 
-# This will return either:
-# a. NO stems because everything has been done and completed -> Exit
-# b. One stem -> read file and do feature creation 
-# c. SEVERAL stems if some json files weren't successfuly created features for
-# -> TODO: THINK ABOUT HOW TO HANDLE THIS HERE
 """
 
 import logging
 from pathlib import Path
 import os
-from lvra.utils.features import FeaturesRealBogus
+from lvra.utils.features import FeaturesRealBogus, json2cleandf
+from lvra.utils.misc import set_up
 import sys
 import yaml
 import sqlite3
 from datetime import datetime
 
+# #-#-#-#-#-# #
+#  CONSTANTS  #
+# #-#-#-#-#-# #
+
+COLUMNS_TO_REMOVE = ['visit', 
+                     'tns_name',
+                     'ssObjectId',
+                     'parentDiaSourceId',
+                     'midpointMjdTai',
+                     'timeProcessedMjdTai',
+                     'timeWithdrawnMjdTai',
+                     'firstDiaSourceMjdTai',
+                     'ra_sourceId',
+                     'raErr_sourceId',
+                     'decErr_sourceId',
+                     'ra_dec_Cov_sourceId',
+                     'UTC',
+                    ]
 
 
-
-# GET SETTINGS LOCATION: from the environment or grab the default. 
 env_settings = os.environ.get("LVRA_SETTINGS")
 if env_settings:                                 # from environment variable
     SETTINGS_PATH = Path(env_settings)
 else:                                            # or go to default file
     SETTINGS_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "public_settings.yaml"
 
+LOG_NAME = "r0b_feature_maker.log"
+
 # #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-# #
 # FUNCTIONS CALLED BY MAIN (split for better testing) #
 # #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-# #
  
-def set_up(settings_path: Path = SETTINGS_PATH,
-          ):
-    """Creates the set_up dictionary
-    
-    Parameters
-    ----------    
-    settings_path: str
-        Public settings file path. Must contain the keys: endpoint, base_dir
-    logger: logger object
-        logger object already set up at the top of the script. Default is LOGGER (defined at top of module)
-
-    Returns
-    -------
-    dictionary with keys: TODO -added list
-    """   
-    # TODO: add a r0b_feature_version to the yaml file to put in FEATURE_SUFFIX 
-        
-    # The data subdirectories are organised in several levels: TYPE > YYYY > YYYYMMDD
-    # so our logs and JSONS would end up in the folders:
-    # $base_dir/2026/20260127 and $base_dir/JSON/2026/20260127 respectively
-    # So I need the current year and day in that format to make the directories
-    current_year = datetime.utcnow().strftime("%Y")
-    current_day = datetime.utcnow().strftime("%Y%m%d")
-    sub_dir = Path(current_year) / Path(current_day)
-    
-
-    with settings_path.open("r") as settings:
-        config = yaml.safe_load(settings)
-        setup_dict = {'base_dir': Path(config['base_dir']),          
-                      'json_dir': Path(config['base_dir'])/ "JSON" / sub_dir,  # where lasair input data stored
-                      'csv_dir':  Path(config['base_dir']) / "csv" / sub_dir,  # where csv feature output files stored
-                      'log_dir':  Path(config['base_dir']) / "logs" / sub_dir, 
-                      'log_db':  Path(config['base_dir']) / "db" / "log.db",   # sqlite log db NOT IN A YEAR/DAY SUBDIR    
-                      'endpoint': config['endpoint'],                          # url endpoint Lasair
-                     }
-
-    LOGGER = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
-    logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s",
-                    handlers=[logging.FileHandler(setup_dict['log_dir'] / "r0b_feature_maker.log"),
-                        logging.StreamHandler()
-                    ])
-    LOGGER.info(f"[INIT] - SET UP COMPLETE")
-
-    
-    return setup_dict, LOGGER 
-
 def stemlist_from_logdb(sqlite_cursor, 
                      logger,
                      ):
@@ -121,6 +79,46 @@ def stemlist_from_logdb(sqlite_cursor,
 
 
 def make_features(input_path: Path,
+                  output_path: Path,
+                  logger):
+
+    # input: logging, input path, output path, endpoint
+    # output: exit code
+    logger.info(f"[MAKE_FEATURES] START | inpath={input_path} outpath={output_path}") 
+
+    try:
+        clean_df = json2cleandf(input_path)
+    except FileNotFoundError:
+        logger.error(f"[MAKE_FEATURES] FAIL - reason = INPUT FileNotFound - inpath={input_path}")
+        return 21
+    except KeyError as e:
+        logger.error(f"[MAKE_FEATURES] FAIL - reason = KeyError {e}")
+        return 30
+
+    try:
+        # MAKE NEW FEATURES AND REMOVE COLUMNS WE DON'T WANT
+        clean_df['deltaDiaSourceMjdTai'] = clean_df.lastDiaSourceMjdTai - clean_df.firstDiaSourceMjdTai
+        columns_to_include = list(set(clean_df.columns) - set(COLUMNS_TO_REMOVE))
+        features_df = clean_df[columns_to_include]
+
+        # OUTPUT TO CSV
+        # If this is the first process of the day, the daily directory won't exist and we need to create it
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        # Output to csv
+        features_df.to_csv(output_path, index=False)
+
+        logger.info(f"[MAKE_FEATURES] SUCCESS - {output_path} created ")
+        return 0
+
+    except FileNotFoundError:
+        logger.error(f"[MAKE_FEATURES] FAIL - reason= OUTPUT FileNotFound")
+        return 22
+    except Exception as e:
+        logger.error(f"[MAKE_FEATURES] FAIL -  reason={e}")
+        return 1
+    
+
+def make_features_deprecated(input_path: Path,
                   output_path: Path,
                   endpoint: str,
                   logger):
@@ -153,10 +151,10 @@ def make_features(input_path: Path,
 # MAIN  #
 # #-#-# #
 
-def main( settings_path: Path = SETTINGS_PATH
-         ):
+def main():
     # SETUP 
-    setup_dict, logger = set_up(settings_path)
+    setup_dict, logger = set_up(settings_path=SETTINGS_PATH, 
+                                log_name=LOG_NAME)
          
     # SQLITE CONNECTION
     logger.info(f"[SQLITE] START")
@@ -165,32 +163,41 @@ def main( settings_path: Path = SETTINGS_PATH
     
     # GET OUR STEM LIST
     stem_list = stemlist_from_logdb(cur, logger)
+    # IF EMPTY, NO NEW FILES TO PROCESS - EXIT 
     if len(stem_list) == 0:
         con.close()
         logger.info("[EXIT] - No new stems to process - Closing sqlite connection and exiting (0).")
         return 0  # here this is a bash error code 0 = SUCCESS
     
+    # FOR EACH FILE WE HAVE TO PROCESS
     for stem in stem_list:
-        INPUT_PATH = setup_dict['json_dir'] / f"{stem}.json"
-        OUTPUT_PATH = setup_dict['csv_dir'] / f"{stem}.csv"
+        # 1. Make the correct JSON file path (input) and csv file path (output)
+        date = stem[:8]
+        INPUT_PATH = setup_dict['json_dir'].parent / date /  f"{stem}.json"
+        OUTPUT_PATH = setup_dict['csv_dir'].parent / date /  f"{stem}.csv"
 
+        # 2. Make the features and so
         exit_code = make_features(input_path = INPUT_PATH,
-                                   output_path = OUTPUT_PATH,
-                                    endpoint = setup_dict['endpoint'],
+                                  output_path = OUTPUT_PATH,
                                   logger = logger
                                   )
+        # 3. Updatee the feature_making table in SQLite depending on 
+        #    whether we were successful or not at making our features
+        # TODO: should I have a special exit code for file not found?
         if exit_code == 0:
             sql = "UPDATE feature_making SET r0b = 1 WHERE stem = ?;"     
             cur.execute(sql, (stem,))
             con.commit()
 
-            logger.info(f"[SQLITE] stem {stem} r0b status set to 1 (success)")
+            logger.info(f"[SQLITE] stem={stem} | status=1 (SUCCESS)")
         else:
-            sql = "UPDATE feature_making SET r0b = 99 WHERE stem = ?;" 
-            cur.execute(sql, (stem,))
+            if exit_code == 1:
+                exit_code = 99  # generic failure
+            sql = "UPDATE feature_making SET r0b = ? WHERE stem = ?;" 
+            cur.execute(sql, (exit_code, stem))
             con.commit()
 
-            logger.info(f"[SQLITE] stem {stem} r0b status set to 99 (tried and failed)")
+            logger.info(f"[SQLITE] stem={stem} | status={exit_code} (FAILED - see docs for details)")
         
     # CLEAN UP
     con.close()

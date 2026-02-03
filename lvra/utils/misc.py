@@ -1,6 +1,73 @@
 import hashlib
 from pathlib import Path
 LVRA_ENV_FILE = Path(__file__).resolve().parent.parent.parent / "lvra_env.yml"
+import logging
+from datetime import datetime
+import os
+import yaml 
+
+def set_up(settings_path: Path,
+           log_name: str
+          ):
+    """Creates the set_up dictionary
+    
+    Parameters
+    ----------    
+    settings_path: Path
+        Public settings file path. Must contain the keys: endpoint, base_dir
+
+    Returns
+    -------
+    dictionary with keys:
+    - kafka_server: URL of the server
+    - my_topic: topic associated with filter
+    - group_id: id used to keep your "place" in queue
+    - base_dir: base directory for data storage
+    - json_dir: where lasair input data stored
+    - csv_dir: where csv feature output files stored
+    - log_dir: log directory
+    - log_db: sqlite log db NOT IN A YEAR/DAY SUBDIR    
+    - endpoint: url endpoint Lasair
+    """   
+    # TODO: add a r0b_feature_version to the yaml file to put in FEATURE_SUFFIX 
+        
+    # The data subdirectories are organised in several levels: TYPE > YYYY > YYYYMMDD
+    # so our logs and JSONS would end up in the folders:
+    # $base_dir/2026/20260127 and $base_dir/JSON/2026/20260127 respectively
+    # So I need the current year and day in that format to make the directories
+    current_year = datetime.utcnow().strftime("%Y")
+    current_day = datetime.utcnow().strftime("%Y%m%d")
+    sub_dir = Path(current_year) / Path(current_day)
+    
+
+    with settings_path.open("r") as settings:
+        config = yaml.safe_load(settings)
+        setup_dict = {'kafka_server': config['kafka_server'],                  # URL of the server
+                      'my_topic': config['my_topic'],                          # topic associated with filter
+                      'group_id': config['group_id'],                          # id used to keep your "place" in queue
+                      'base_dir': Path(config['base_dir']),          
+                      'json_dir': Path(config['base_dir'])/ "JSON" / sub_dir,  # where lasair input data stored
+                      'csv_dir':  Path(config['base_dir']) / "csv" / sub_dir,  # where csv feature output files stored
+                      'log_dir':  Path(config['base_dir']) / "logs" / sub_dir, 
+                      'log_db':  Path(config['base_dir']) / "db" / "log.db",   # sqlite log db NOT IN A YEAR/DAY SUBDIR    
+                      'endpoint': config['endpoint'],                          # url endpoint Lasair
+                     }
+
+    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+
+    # if log file doesn't exist, create it
+    setup_dict['log_dir'].mkdir(parents=True, exist_ok=True)
+
+    logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s",
+                    handlers=[logging.FileHandler(setup_dict['log_dir'] / log_name),
+                        logging.StreamHandler()
+                    ])
+    
+    logger.info(f"[INIT] - SET UP COMPLETE")
+
+    return setup_dict, logger 
+
 
 def sha256_of_file(path, chunk_size=8192):
     "Computes the SHA256 hash of a file"
