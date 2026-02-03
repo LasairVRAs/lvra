@@ -53,7 +53,7 @@ def json2cleandf(path: Path) -> pd.DataFrame:
     # 5. Join!
     clean_df = latestSourceIds_df.join(filterOutput_df, lsuffix='_sourceId')
 
-    return clean_df
+    return clean_df.reset_index()
 
 
 
