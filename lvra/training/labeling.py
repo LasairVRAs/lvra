@@ -72,7 +72,7 @@ def interactive_labeling(
     output:  str = POOL_DIR / "y_labeled.csv",
     allowed_labels: Optional[Dict[str, str]] = None,
     resume: bool = True,
-    url_template: str = "https://lasair-lsst-dev.lsst.ac.uk/objects/{oid}",
+    url_template: str = "http://localhost:8012/objects/{oid}", #"https://lasair-lsst.lsst.ac.uk/objects/{oid}",
     input_func: Callable[[str], str] = input,
     opener: Callable[[str], None] = webbrowser.open,
     session_id: Optional[str] = None,
@@ -180,7 +180,7 @@ def interactive_labeling(
             # choose URL
             url = url_template.format(oid=oid) 
 
-            print(f"\n{i+1}/{total} - mjd={row.get('mjd', '(unknown)')} - diaSourceId={sid} diaObjectId={oid or '(unknown)'}")
+            print(f"\n{i+1}/{total} - mjd={row.get('lastDiaSourceMjdTai', '(unknown)')} - diaSourceId={sid} diaObjectId={oid or '(unknown)'}")
             try:
                 opener(url)
             except Exception as e:

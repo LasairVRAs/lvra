@@ -3,3 +3,4 @@ my_topic: lasair_83vra-dev
 #group_id: test_ox8
 group_id: pytest
 base_dir: ./data/ci_vra_json/
+endpoint: https://lasair.lsst.ac.uk/api
