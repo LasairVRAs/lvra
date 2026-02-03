@@ -1,10 +1,11 @@
 import hashlib
 from pathlib import Path
-LVRA_ENV_FILE = Path(__file__).resolve().parent.parent.parent / "lvra_env.yml"
 import logging
 from datetime import datetime
 import os
 import yaml 
+
+LVRA_ENV_FILE = Path(__file__).resolve().parent.parent.parent / "lvra_env.yml"
 
 def set_up(settings_path: Path,
            log_name: str
@@ -64,7 +65,7 @@ def set_up(settings_path: Path,
                         logging.StreamHandler()
                     ])
     
-    logger.info(f"[INIT] - SET UP COMPLETE")
+    logger.info("[INIT] - SET UP COMPLETE")
 
     return setup_dict, logger 
 

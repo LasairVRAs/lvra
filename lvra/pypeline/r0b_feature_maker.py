@@ -10,15 +10,12 @@ returns a list of stems for json files whose features have not been successfully
 
 """
 
-import logging
 from pathlib import Path
 import os
 from lvra.utils.features import FeaturesRealBogus, json2cleandf
 from lvra.utils.misc import set_up
 import sys
-import yaml
 import sqlite3
-from datetime import datetime
 
 # #-#-#-#-#-# #
 #  CONSTANTS  #
@@ -67,13 +64,13 @@ def stemlist_from_logdb(sqlite_cursor,
     """
     sql = "SELECT stem FROM feature_making WHERE r0b != 1;"
     res = sqlite_cursor.execute(sql)
-    logger.info(f"[SQLITE] Fetching Stem list")
+    logger.info("[SQLITE] Fetching Stem list")
     # The result from fetchall will look like e.g. [('20260127_115934',), ('20260127_134852',)]
     # so we need to do list comprehension to have a list of just strings and not tuples of strings
     _stem_ls = res.fetchall() 
     stem_ls = [stem[0] for stem in _stem_ls]
     
-    logger.info(f"[SQLITE] SUCCESS Fetching Stem list | Connection NOT CLOSED")
+    logger.info("[SQLITE] SUCCESS Fetching Stem list | Connection NOT CLOSED")
 
     return stem_ls
 
@@ -111,7 +108,7 @@ def make_features(input_path: Path,
         return 0
 
     except FileNotFoundError:
-        logger.error(f"[MAKE_FEATURES] FAIL - reason= OUTPUT FileNotFound")
+        logger.error("[MAKE_FEATURES] FAIL - reason= OUTPUT FileNotFound")
         return 22
     except Exception as e:
         logger.error(f"[MAKE_FEATURES] FAIL -  reason={e}")
@@ -140,7 +137,7 @@ def make_features_deprecated(input_path: Path,
         return 0
 
     except FileNotFoundError:
-        logger.error(f"[MAKE_FEATURES] FAIL - reason=FileNotFound")
+        logger.error("[MAKE_FEATURES] FAIL - reason=FileNotFound")
         return 1
     except Exception as e:
         logger.error(f"[MAKE_FEATURES] FAIL -  reason={e}")
@@ -157,7 +154,7 @@ def main():
                                 log_name=LOG_NAME)
          
     # SQLITE CONNECTION
-    logger.info(f"[SQLITE] START")
+    logger.info("[SQLITE] START")
     con = sqlite3.connect(setup_dict['log_db'])     # Creates connection
     cur = con.cursor()                              # cursor objects needed to make changes
     

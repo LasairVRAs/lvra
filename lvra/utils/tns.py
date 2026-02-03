@@ -38,7 +38,7 @@ LOGGER = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s")
 
-LOGGER.info(f"[INIT] - tns utils")
+LOGGER.info("[INIT] - tns utils")
 # GET SETTINGS LOCATION: from the environment or grab the default. 
 env_settings = os.environ.get("LVRA_SETTINGS")
 if env_settings:                                 # from environment variable
@@ -72,7 +72,7 @@ def set_up(settings_path: Path = SETTINGS_PATH,
     -------
     dictionary with keys: TODO -added list
     """   
-    logger.info(f" [SETUP] START")
+    logger.info(" [SETUP] START")
     # TODO: add a r0b_feature_version to the yaml file to put in FEATURE_SUFFIX 
         
     # The data subdirectories are organised in several levels: TYPE > YYYY > YYYYMMDD
@@ -91,7 +91,7 @@ def set_up(settings_path: Path = SETTINGS_PATH,
                       'log_db':  Path(config['base_dir']) / "db" / "log.db",   # sqlite log db NOT IN A YEAR/DAY SUBDIR    
                      }
 
-    logger.info(f"[SETUP] SUCCESS")
+    logger.info("[SETUP] SUCCESS")
     
     return setup_dict
 
@@ -122,7 +122,9 @@ def make_tns_report_dictionary():
     # without a needed speed up. 
 
     tns_dict = {'at_report': {}}
+    
     counter = 0
+    print(tns_dict, counter)
 
     # will need to be in a loop over our reported objects
     #tns_dict['at_report'][str(counter)] = {'ra': {'value': },
@@ -183,6 +185,7 @@ def test_tns_report_dictionary():
 
 def main(TESTING = False):
     setup = set_up()
+    print(setup)
 
     if TESTING:
         tns_dict = test_tns_report_dictionary()
@@ -202,7 +205,7 @@ def main(TESTING = False):
     report_parameters = {'api_key': TNS_API_KEY, 'data': json.dumps(tns_dict)}
 
     r = requests.post(report_url, data = report_parameters, timeout = 300, headers = header)
-    #print('status:', r.status_code)
+    print('status:', r.status_code)
     #print('response text:', r.text)
     # what was actually sent
     #print('request headers:', r.request.headers)
