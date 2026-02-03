@@ -83,14 +83,18 @@ def make_features(input_path: Path,
     # output: exit code
     logger.info(f"[MAKE_FEATURES] START | inpath={input_path} outpath={output_path}") 
 
+    # TODO: add tests that actually go through these exceptions 
     try:
-        clean_df = json2cleandf(input_path)
+        clean_df, objectIds_withoutAlert_col = json2cleandf(input_path)
     except FileNotFoundError:
         logger.error(f"[MAKE_FEATURES] FAIL - reason = INPUT FileNotFound - inpath={input_path}")
         return 21
     except KeyError as e:
         logger.error(f"[MAKE_FEATURES] FAIL - reason = KeyError {e}")
         return 30
+    except Exception as e:
+        logger.error(f"[MAKE_FEATURES] FAIL - reason={e}")
+        return 1
 
     try:
         # MAKE NEW FEATURES AND REMOVE COLUMNS WE DON'T WANT
@@ -104,6 +108,11 @@ def make_features(input_path: Path,
         # Output to csv
         features_df.to_csv(output_path, index=False)
 
+        if len(objectIds_withoutAlert_col) > 0:
+            logger.warning(f"[MAKE_FEATURES] WARNING - {len(objectIds_withoutAlert_col)} diaObjectIds had no alert key in their JSON entry"
+                           f"and are NOT INCLUDED IN THE OUTPUT. List of diaObjectIds:\n{objectIds_withoutAlert_col}")
+            logger.info(f"[MAKE_FATURES] PARTIAL SUCCESS - {output_path} created ")
+            
         logger.info(f"[MAKE_FEATURES] SUCCESS - {output_path} created ")
         return 0
 
