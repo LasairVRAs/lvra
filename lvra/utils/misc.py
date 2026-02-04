@@ -30,8 +30,6 @@ def set_up(settings_path: Path,
     - log_db: sqlite log db NOT IN A YEAR/DAY SUBDIR    
     - endpoint: url endpoint Lasair
     """   
-    # TODO: add a r0b_feature_version to the yaml file to put in FEATURE_SUFFIX 
-        
     # The data subdirectories are organised in several levels: TYPE > YYYY > YYYYMMDD
     # so our logs and JSONS would end up in the folders:
     # $base_dir/2026/20260127 and $base_dir/JSON/2026/20260127 respectively
@@ -68,6 +66,33 @@ def set_up(settings_path: Path,
     logger.info("[INIT] - SET UP COMPLETE")
 
     return setup_dict, logger 
+
+
+def read_model_config(path, logger):
+    """Model specific configs that are not in setup_dict"""
+    model_conf_dict=None
+
+    try:
+        with path.open("r") as conf_file:
+            config = yaml.safe_load(conf_file)
+            model_conf_dict = {'MODEL_PATH': config['MODEL_PATH'],
+                               'MODEL_NAME': config['MODEL_NAME'],
+                               'MODEL_VERSION': config['MODEL_VERSION'],
+                               'TOPIC_OUT': config['TOPIC_OUT'],
+                               'EXPLANATION': config['EXPLANATION'],
+                               'URL': config['URL']
+                               }
+        logger.info(f"[MODEL CONFIG] Successfully Loaded ")
+        status_code = 0 
+    except FileNotFoundError as e:
+        logger.error(f"[MODEL CONFIG] {e}")
+        status_code=21
+    except Exception as e:
+        logger.error(f"[MODEL CONFIG] Failed to load {path} | {e}")
+        status_code = 99
+
+    return model_conf_dict, status_code
+
 
 
 def sha256_of_file(path, chunk_size=8192):

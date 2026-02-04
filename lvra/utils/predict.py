@@ -8,7 +8,9 @@ import pandas as pd
 import joblib
 
 def predict(df, 
-            model):
+            model,
+            logger
+            ):
     
     if not isinstance(df, pd.DataFrame):
         return None, 23 #input file type incorrect 
@@ -22,8 +24,11 @@ def predict(df,
 
     X=df[trained_features]
     preds = model.predict_proba(X).T[1]
-    # TODO: preds should be a dataframe that is indexed by diaObjectId!
-    return preds, 1
+
+    scores_df = df[['diaObjectId', 'diaSourceId']].copy()
+    scores_df['score'] = preds
+    
+    return scores_df, 0
 
 
 
