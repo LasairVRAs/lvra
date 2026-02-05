@@ -23,7 +23,8 @@ else:                                            # or go to default file
     SETTINGS_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "public_settings.yaml"
 
 LOG_NAME = "r0b_annotator.log"
-LASAIR_TOKEN = os.getenv("LASAIR_LSST_TOKEN")
+# TODO: this shouldn't be hard coded - it's a pain for dev. I need to find a better way, maybe allow taking it form cli
+LASAIR_TOKEN = os.getenv("LASAIR_LSST_DEV_TOKEN")
 MODEL_CONFIG_FILE = "r0b_config.yaml"
 
 
