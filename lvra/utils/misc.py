@@ -8,7 +8,8 @@ import yaml
 LVRA_ENV_FILE = Path(__file__).resolve().parent.parent.parent / "lvra_env.yml"
 
 def set_up(settings_path: Path,
-           log_name: str
+           log_name: str,
+           logger
           ):
     """Creates the set_up dictionary
     
@@ -52,7 +53,7 @@ def set_up(settings_path: Path,
                       'endpoint': config['endpoint'],                          # url endpoint Lasair
                      }
 
-    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    
 
     # if log file doesn't exist, create it
     setup_dict['log_dir'].mkdir(parents=True, exist_ok=True)
@@ -65,7 +66,7 @@ def set_up(settings_path: Path,
     
     logger.info("[INIT] - SET UP COMPLETE")
 
-    return setup_dict, logger 
+    return setup_dict
 
 
 def read_model_config(path, logger):

@@ -10,6 +10,7 @@ returns a list of stems for json files whose features have not been successfully
 
 """
 
+import logging
 from pathlib import Path
 import os
 from lvra.utils.features import FeaturesRealBogus, json2cleandf
@@ -158,9 +159,13 @@ def make_features_deprecated(input_path: Path,
 # #-#-# #
 
 def main():
-    # SETUP 
-    setup_dict, logger = set_up(settings_path=SETTINGS_PATH, 
-                                log_name=LOG_NAME)
+    
+    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    # General settings and initialisation of the logger
+    setup_dict = set_up(settings_path=SETTINGS_PATH, 
+                        log_name=LOG_NAME,
+                        logger=logger
+                        )
          
     # SQLITE CONNECTION
     logger.info("[SQLITE] START")

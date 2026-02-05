@@ -42,9 +42,9 @@ def get_pending_annotations(sqlite_cursor,  model_name, model_version, logger, )
     _sql="select p.ID, p.diaObjectId, p.diaSourceId, p.stem, p.score, p.model_name, p.model_version "\
         "from annotating as a join provenance as p on a.stem = p.stem "\
         f"where ABS(a.{model_name})!=1 and "\
-        f"p.model_name={model_name} and " \
-        f"p.model_version={model_version} ;"
-    
+        f"p.model_name='{model_name}' and " \
+        f"p.model_version='{model_version}' ;"
+
     res = sqlite_cursor.execute(_sql)
     list_results = res.fetchall()
     pending_anotations=pd.DataFrame(list_results, dtype=str)
@@ -92,8 +92,8 @@ def update_annotating_table(status_code,
 
 
     for stem in unique_stems:
-        sql = "UPDATE annotating SET ? = ? WHERE stem = ?;"     
-        sqlite_cursor.execute(sql, (model_name,status_code, stem,))
+        sql = f"UPDATE annotating SET {model_name} = ? WHERE stem = ?;"     
+        sqlite_cursor.execute(sql, (status_code, stem,))
 
     connection.commit()
     logger.info(f"[SQLITE] SUCCESS | Updated annotating table - stems={len(unique_stems)}")
@@ -110,9 +110,12 @@ def main():
     #                      SET UP                        #
     # -------------------------------------------------- #
 
+    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
     # General settings and initialisation of the logger
-    setup_dict, logger = set_up(settings_path=SETTINGS_PATH, 
-                                log_name=LOG_NAME)
+    setup_dict = set_up(settings_path=SETTINGS_PATH, 
+                        log_name=LOG_NAME,
+                        logger=logger
+                        )
     
     # Model specific configs 
     # (that yaml file is in the same directory as SETTINGS_PATH so can take the parent)
@@ -180,7 +183,6 @@ def main():
     status_code = update_annotating_table(status_code,
                                           unique_stems=list(set(stem_list)),
                                           model_name=model_conf_dict['MODEL_NAME'],
-                                          model_version=model_conf_dict['MODEL_VERSION'],
                                           sqlite_cursor=cur,
                                           connection=con,
                                           logger=logger

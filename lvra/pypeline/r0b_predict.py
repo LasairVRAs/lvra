@@ -40,8 +40,8 @@ def stemlist_from_log(sqlite_cursor,
     """Find the stems for which the feature files were made but annotating was not completed
     """
     
-    sql = "SELECT * FROM annotating JOIN feature_making ON" \
-        "annotating.stem=feature_making.stem"\
+    sql = "SELECT * FROM annotating JOIN feature_making ON " \
+        "annotating.stem=feature_making.stem "\
         f"WHERE ABS(annotating.{model_name})!=1 AND ABS(feature_making.{model_name})=1;"
     
     # TODO: AND CHECK STEM NOT IN PROVENANCE TABLE????
@@ -52,8 +52,9 @@ def stemlist_from_log(sqlite_cursor,
     logger.info("[SQLITE] Fetching Stem list")
     # The result from fetchall will look like e.g. [('20260127_115934',), ('20260127_134852',)]
     # so we need to do list comprehension to have a list of just strings and not tuples of strings
-    _stem_ls = res.fetchall() 
-    stem_ls = [stem[0] for stem in _stem_ls]
+    _stem_ls = res.fetchall()
+    stem_ls = [row['stem'] for row in _stem_ls]
+    #stem_ls = [stem[0] for stem in _stem_ls] # this version if we don't use row_factory
 
 
     
@@ -96,9 +97,12 @@ def main():
     #                      SET UP                        #
     # -------------------------------------------------- #
 
+    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
     # General settings and initialisation of the logger
-    setup_dict, logger = set_up(settings_path=SETTINGS_PATH, 
-                                log_name=LOG_NAME)
+    setup_dict = set_up(settings_path=SETTINGS_PATH, 
+                        log_name=LOG_NAME,
+                        logger=logger
+                        )
     
     # Model specific configs 
     # (that yaml file is in the same directory as SETTINGS_PATH so can take the parent)
