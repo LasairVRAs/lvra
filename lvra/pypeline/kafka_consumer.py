@@ -1,6 +1,5 @@
 import json
 from lasair import lasair_consumer
-import yaml
 import logging
 from pathlib import Path
 from datetime import datetime

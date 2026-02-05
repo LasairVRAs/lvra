@@ -1,8 +1,6 @@
 # Chat gpt 5.2 wrote most of these tests
 from pathlib import Path
 import pandas as pd
-import pandas.testing as pdt
-import pytest
 
 from lvra.utils.features import json2cleandf
 

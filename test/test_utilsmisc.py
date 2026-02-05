@@ -8,7 +8,7 @@ accidental breakage from typos or missing fields.
 """
 
 import pytest
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, patch
 from pathlib import Path
 import yaml
 from datetime import datetime

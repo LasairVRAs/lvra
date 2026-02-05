@@ -13,7 +13,7 @@ returns a list of stems for json files whose features have not been successfully
 import logging
 from pathlib import Path
 import os
-from lvra.utils.features import FeaturesRealBogus, json2cleandf
+from lvra.utils.features import json2cleandf
 from lvra.utils.misc import set_up
 import sys
 import sqlite3
