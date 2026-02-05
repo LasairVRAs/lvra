@@ -125,33 +125,6 @@ def make_features(input_path: Path,
         return 1
     
 
-def make_features_deprecated(input_path: Path,
-                  output_path: Path,
-                  endpoint: str,
-                  logger):
-
-    # input: logging, input path, output path, endpoint
-    # output: exit code
-    logger.info(f"[MAKE_FEATURES] START | inpath={input_path} outpath={output_path}") 
-    try:
-        # TODO: logic could change to not use objects? 
-        _df = FeaturesRealBogus.from_json(input_path)
-        features_df = FeaturesRealBogus.add_diasource_features(df=_df, endpoint=endpoint)
-
-        # If this is the first process of the day, the daily directory won't exist and we need to create it
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        # Output to csv
-        features_df.to_csv(output_path, index=False)
-
-        logger.info(f"[MAKE_FEATURES] SUCCESS - {output_path} created ")
-        return 0
-
-    except FileNotFoundError:
-        logger.error("[MAKE_FEATURES] FAIL - reason=FileNotFound")
-        return 1
-    except Exception as e:
-        logger.error(f"[MAKE_FEATURES] FAIL -  reason={e}")
-        return 1
 
 
 # #-#-# #
