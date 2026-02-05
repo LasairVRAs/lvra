@@ -15,7 +15,7 @@ else:                                            # or go to default file
 
 def test_set_up():
     logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
-    setup_dict, logger = set_up(settings_path=SETTINGS_PATH,
+    setup_dict= set_up(settings_path=SETTINGS_PATH,
                                 log_name="test_utilsmisc.log",
                                 logger=logger)
     expected_keys = ['base_dir', 'json_dir', 'csv_dir', 'log_dir', 'log_db', 'endpoint']
