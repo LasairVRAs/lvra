@@ -5,7 +5,6 @@
 # - model version 
 
 import pandas as pd
-import joblib
 
 def predict(df, 
             model,

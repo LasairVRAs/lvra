@@ -3,13 +3,10 @@ import os
 import sys
 import logging
 from pathlib import Path
-import yaml
-import joblib
 import pandas as pd
 import lasair
 from lvra.utils.misc import set_up, read_model_config
 import sqlite3
-from lvra.utils.predict import predict
 #import lvra.utils as lutils
 
 

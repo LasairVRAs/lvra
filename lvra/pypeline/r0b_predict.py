@@ -3,10 +3,8 @@ import os
 import sys
 import logging
 from pathlib import Path
-import yaml
 import joblib
 import pandas as pd
-import lasair
 from lvra.utils.misc import set_up, read_model_config
 import sqlite3
 from lvra.utils.predict import predict
@@ -150,7 +148,7 @@ def main():
         logger.info(f"[PREDICT] START - stem={stem}")
         try:
             _df = pd.read_csv((setup_dict['csv_dir'].parent / stem[:8] / stem).with_suffix('.csv'))
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             logger.error(f"[PREDICT] FAIL - stem={stem} reason=Feature file not found")
             continue
 

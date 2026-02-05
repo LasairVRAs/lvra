@@ -2,7 +2,6 @@ import hashlib
 from pathlib import Path
 import logging
 from datetime import datetime
-import os
 import yaml 
 
 LVRA_ENV_FILE = Path(__file__).resolve().parent.parent.parent / "lvra_env.yml"
@@ -83,7 +82,7 @@ def read_model_config(path, logger):
                                'EXPLANATION': config['EXPLANATION'],
                                'URL': config['URL']
                                }
-        logger.info(f"[MODEL CONFIG] Successfully Loaded ")
+        logger.info("[MODEL CONFIG] Successfully Loaded ")
         status_code = 0 
     except FileNotFoundError as e:
         logger.error(f"[MODEL CONFIG] {e}")
