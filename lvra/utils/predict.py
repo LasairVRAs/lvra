@@ -1,9 +1,3 @@
-# INPUT: 
-# - stems (from the annotator or the script that calls our predictor)
-# - model path
-# - model name 
-# - model version 
-
 import pandas as pd
 
 def predict(df, 
