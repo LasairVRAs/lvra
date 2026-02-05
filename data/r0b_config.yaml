@@ -1,0 +1,8 @@
+MODEL_PATH: /home/stevance/Science/lvra-training/RBclosed_loop_tests/models/r0b_a1_N411_LR01p1_MaxI50_RS42.joblib
+MODEL_NAME: r0b
+MODEL_VERSION: a1
+TOPIC_OUT: 'vradev'
+EXPLANATION: r0b - Real Or Bogus Classifier
+URL: https://lasairvras.github.io/lvra-doc/r0b.html
+
+

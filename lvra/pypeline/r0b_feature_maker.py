@@ -10,6 +10,7 @@ returns a list of stems for json files whose features have not been successfully
 
 """
 
+import logging
 from pathlib import Path
 import os
 from lvra.utils.features import FeaturesRealBogus, json2cleandf
@@ -62,7 +63,7 @@ def stemlist_from_logdb(sqlite_cursor,
     stem_list: list
         The list of stems whose r0b column was not 1 (not successful). If no matches, get empty list.
     """
-    sql = "SELECT stem FROM feature_making WHERE r0b != 1;"
+    sql = "SELECT stem FROM feature_making WHERE ABS(r0b) != 1;"
     res = sqlite_cursor.execute(sql)
     logger.info("[SQLITE] Fetching Stem list")
     # The result from fetchall will look like e.g. [('20260127_115934',), ('20260127_134852',)]
@@ -114,7 +115,7 @@ def make_features(input_path: Path,
             logger.info(f"[MAKE_FATURES] PARTIAL SUCCESS - {output_path} created ")
             
         logger.info(f"[MAKE_FEATURES] SUCCESS - {output_path} created ")
-        return 0
+        return -1
 
     except FileNotFoundError:
         logger.error("[MAKE_FEATURES] FAIL - reason= OUTPUT FileNotFound")
@@ -158,9 +159,13 @@ def make_features_deprecated(input_path: Path,
 # #-#-# #
 
 def main():
-    # SETUP 
-    setup_dict, logger = set_up(settings_path=SETTINGS_PATH, 
-                                log_name=LOG_NAME)
+    
+    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    # General settings and initialisation of the logger
+    setup_dict = set_up(settings_path=SETTINGS_PATH, 
+                        log_name=LOG_NAME,
+                        logger=logger
+                        )
          
     # SQLITE CONNECTION
     logger.info("[SQLITE] START")
@@ -189,21 +194,28 @@ def main():
                                   )
         # 3. Updatee the feature_making table in SQLite depending on 
         #    whether we were successful or not at making our features
-        # TODO: should I have a special exit code for file not found?
-        if exit_code == 0:
-            sql = "UPDATE feature_making SET r0b = 1 WHERE stem = ?;"     
-            cur.execute(sql, (stem,))
+        # TODO: Do I want to maybe change my exit codes? I know I wanted
+        # to be like bash and have 0 = success but it's a pain in my bum right now
+        if exit_code in [0, -1]:
+            if exit_code == 0:
+                status_code = 1 # SUCCESS
+            else:
+                status_code = -1 # PARTIAL SUCCESS
+            sql = "UPDATE feature_making SET r0b = ? WHERE stem = ?;"     
+            cur.execute(sql, (status_code, stem,))
             con.commit()
 
-            logger.info(f"[SQLITE] stem={stem} | status=1 (SUCCESS)")
+            logger.info(f"[SQLITE] stem={stem} | status={status_code}")
         else:
             if exit_code == 1:
-                exit_code = 99  # generic failure
+                status_code = 99  # generic failure
+            else:
+                status_code = exit_code
             sql = "UPDATE feature_making SET r0b = ? WHERE stem = ?;" 
-            cur.execute(sql, (exit_code, stem))
+            cur.execute(sql, (status_code, stem))
             con.commit()
 
-            logger.info(f"[SQLITE] stem={stem} | status={exit_code} (FAILED - see docs for details)")
+            logger.info(f"[SQLITE] stem={stem} | status={status_code}")
         
     # CLEAN UP
     con.close()

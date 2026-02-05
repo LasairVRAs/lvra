@@ -1,3 +1,4 @@
+import logging
 from lvra.utils.misc import sha256_of_file, set_up
 from pathlib import Path
 import os 
@@ -13,8 +14,10 @@ else:                                            # or go to default file
     SETTINGS_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "public_settings.yaml"
 
 def test_set_up():
-    setup_dict, logger = set_up(settings_path=SETTINGS_PATH,
-                                log_name="test_utilsmisc.log")
+    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    setup_dict= set_up(settings_path=SETTINGS_PATH,
+                                log_name="test_utilsmisc.log",
+                                logger=logger)
     expected_keys = ['base_dir', 'json_dir', 'csv_dir', 'log_dir', 'log_db', 'endpoint']
     for key in expected_keys:
         assert key in setup_dict, f"Key '{key}' missing from setup_dict"
