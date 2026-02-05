@@ -1,5 +1,14 @@
 #!/usr/bin/bash
 
+# Read in the arguements
+
+if [[ -n $1 ]]; then
+    export LASAIR_TOKEN=$1
+else
+    export LASAIR_TOKEN=$LASAIR_LSST_TOKEN
+fi 
+
+
 # SPECIFIC ENVIRONMENTS (HERE REMOTE)
 export PYTHONPATH=/home/lasair/code/lvra/
 CODEBASE=/home/lasair/code/lvra/lvra/pypeline

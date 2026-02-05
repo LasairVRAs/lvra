@@ -24,7 +24,7 @@ else:                                            # or go to default file
 
 LOG_NAME = "r0b_annotator.log"
 # TODO: this shouldn't be hard coded - it's a pain for dev. I need to find a better way, maybe allow taking it form cli
-LASAIR_TOKEN = os.getenv("LASAIR_LSST_DEV_TOKEN")
+LASAIR_TOKEN = os.getenv("LASAIR_TOKEN")
 MODEL_CONFIG_FILE = "r0b_config.yaml"
 
 
@@ -114,6 +114,11 @@ def main():
                         log_name=LOG_NAME,
                         logger=logger
                         )
+    if LASAIR_TOKEN is None:
+        logger.error("[TOKEN] - FAILURE - LASAIR_TOKEN env variable is None. Exiting")
+        return 99
+    else:
+        logger.info("[TOKEN] - Loaded Successfully (Could still be wrong)")
     
     # Model specific configs 
     # (that yaml file is in the same directory as SETTINGS_PATH so can take the parent)
