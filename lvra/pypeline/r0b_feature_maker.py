@@ -13,7 +13,7 @@ returns a list of stems for json files whose features have not been successfully
 import logging
 from pathlib import Path
 import os
-from lvra.utils.features import FeaturesRealBogus, json2cleandf
+from lvra.utils.features import json2cleandf
 from lvra.utils.misc import set_up
 import sys
 import sqlite3
@@ -79,6 +79,25 @@ def stemlist_from_logdb(sqlite_cursor,
 def make_features(input_path: Path,
                   output_path: Path,
                   logger):
+    """Takes the path to a json file, extracts the features and outputs a csv file with those features.
+
+    Parameters
+    ----------
+    input_path: Path
+        The path to the json file we want to extract features from. Expected to be in the format 
+        "../../../data/json/YYYY/YYYYMMDD_HHMMSS.json"
+    output_path: Path
+        The path to the csv file we want to output. Expected to be in the format 
+        "../../../data/csv/YYYY/YYYYMMDD_HHMMSS.csv"
+    logger: logging.Logger
+        The logger object to log info, warnings and errors to the log file.
+
+    Returns
+    -------
+    exit_code: int
+        The exit code to log in the feature_making table in SQLite. 
+        0 = SUCCESS, 1 = FAILURE, 21 = INPUT FILE NOT FOUND, 22 = OUTPUT FILE NOT FOUND, 30 = KEY ERROR IN JSON
+    """
 
     # input: logging, input path, output path, endpoint
     # output: exit code
@@ -125,41 +144,15 @@ def make_features(input_path: Path,
         return 1
     
 
-def make_features_deprecated(input_path: Path,
-                  output_path: Path,
-                  endpoint: str,
-                  logger):
-
-    # input: logging, input path, output path, endpoint
-    # output: exit code
-    logger.info(f"[MAKE_FEATURES] START | inpath={input_path} outpath={output_path}") 
-    try:
-        # TODO: logic could change to not use objects? 
-        _df = FeaturesRealBogus.from_json(input_path)
-        features_df = FeaturesRealBogus.add_diasource_features(df=_df, endpoint=endpoint)
-
-        # If this is the first process of the day, the daily directory won't exist and we need to create it
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        # Output to csv
-        features_df.to_csv(output_path, index=False)
-
-        logger.info(f"[MAKE_FEATURES] SUCCESS - {output_path} created ")
-        return 0
-
-    except FileNotFoundError:
-        logger.error("[MAKE_FEATURES] FAIL - reason=FileNotFound")
-        return 1
-    except Exception as e:
-        logger.error(f"[MAKE_FEATURES] FAIL -  reason={e}")
-        return 1
-
-
 # #-#-# #
 # MAIN  #
 # #-#-# #
 
 def main():
-    
+
+    # -------------------------------------------------- #
+    #                      SET UP                        #
+    # -------------------------------------------------- #
     logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
     # General settings and initialisation of the logger
     setup_dict = set_up(settings_path=SETTINGS_PATH, 
@@ -180,7 +173,9 @@ def main():
         logger.info("[EXIT] - No new stems to process - Closing sqlite connection and exiting (0).")
         return 0  # here this is a bash error code 0 = SUCCESS
     
-    # FOR EACH FILE WE HAVE TO PROCESS
+    # -------------------------------------------------- #
+    #     FOR EACH FILE WE HAVE TO PROCESS...            #
+    # -------------------------------------------------- #
     for stem in stem_list:
         # 1. Make the correct JSON file path (input) and csv file path (output)
         date = stem[:8]
@@ -192,16 +187,14 @@ def main():
                                   output_path = OUTPUT_PATH,
                                   logger = logger
                                   )
-        # 3. Updatee the feature_making table in SQLite depending on 
+        # 3. Update the feature_making table in SQLite depending on 
         #    whether we were successful or not at making our features
-        # TODO: Do I want to maybe change my exit codes? I know I wanted
-        # to be like bash and have 0 = success but it's a pain in my bum right now
         if exit_code in [0, -1]:
             if exit_code == 0:
                 status_code = 1 # SUCCESS
             else:
                 status_code = -1 # PARTIAL SUCCESS
-            sql = "UPDATE feature_making SET r0b = ? WHERE stem = ?;"     
+            sql = "UPDATE feature_making SET timestamp=current_timestamp,r0b = ? WHERE stem = ?;"     
             cur.execute(sql, (status_code, stem,))
             con.commit()
 
@@ -211,7 +204,7 @@ def main():
                 status_code = 99  # generic failure
             else:
                 status_code = exit_code
-            sql = "UPDATE feature_making SET r0b = ? WHERE stem = ?;" 
+            sql = "UPDATE feature_making SET timestamp=current_timestamp, r0b = ? WHERE stem = ?;" 
             cur.execute(sql, (status_code, stem))
             con.commit()
 
