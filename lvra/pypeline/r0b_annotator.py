@@ -90,7 +90,7 @@ def update_annotating_table(status_code,
 
 
     for stem in unique_stems:
-        sql = f"UPDATE annotating SET {model_name} = ? WHERE stem = ?;"     
+        sql = f"UPDATE annotating SET timestamp=current_timestamp, {model_name} = ? WHERE stem = ?;"     
         sqlite_cursor.execute(sql, (status_code, stem,))
 
     connection.commit()

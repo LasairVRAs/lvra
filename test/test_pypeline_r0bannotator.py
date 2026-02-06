@@ -15,21 +15,24 @@ def _create_db(path: str):
     cur.execute(
         """
         CREATE TABLE provenance (
-            ID INTEGER PRIMARY KEY,
-            diaObjectId TEXT,
-            diaSourceId TEXT,
+            ID INTEGER PRIMARY KEY, 
+            diaObjectId INTEGER,
+            diaSourceId INTEGER, 
             stem TEXT,
-            score TEXT,
+            score REAL,
             model_name TEXT,
-            model_version TEXT
+            model_version TEXT,
+            timestamp TEXT NOT NULL DEFAULT current_timestamp
         );
+
         """
     )
     cur.execute(
         """
         CREATE TABLE annotating (
             stem TEXT PRIMARY KEY,
-            r0b INTEGER DEFAULT 0
+            timestamp TEXT NOT NULL DEFAULT current_timestamp,
+            r0b INTEGER
         );
         """
     )

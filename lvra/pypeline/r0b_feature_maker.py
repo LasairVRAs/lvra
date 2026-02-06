@@ -194,7 +194,7 @@ def main():
                 status_code = 1 # SUCCESS
             else:
                 status_code = -1 # PARTIAL SUCCESS
-            sql = "UPDATE feature_making SET r0b = ? WHERE stem = ?;"     
+            sql = "UPDATE feature_making SET timestamp=current_timestamp,r0b = ? WHERE stem = ?;"     
             cur.execute(sql, (status_code, stem,))
             con.commit()
 
@@ -204,7 +204,7 @@ def main():
                 status_code = 99  # generic failure
             else:
                 status_code = exit_code
-            sql = "UPDATE feature_making SET r0b = ? WHERE stem = ?;" 
+            sql = "UPDATE feature_making SET timestamp=current_timestamp, r0b = ? WHERE stem = ?;" 
             cur.execute(sql, (status_code, stem))
             con.commit()
 

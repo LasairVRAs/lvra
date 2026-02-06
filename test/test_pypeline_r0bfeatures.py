@@ -16,6 +16,7 @@ def _create_db(path: str):
         """
         CREATE TABLE feature_making (
             stem TEXT PRIMARY KEY,
+            timestamp TEXT NOT NULL DEFAULT current_timestamp,
             r0b INTEGER DEFAULT 0
         );
         """
