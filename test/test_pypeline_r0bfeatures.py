@@ -3,7 +3,6 @@ import sqlite3
 from pathlib import Path
 import logging
 import pandas as pd
-import pytest
 from unittest.mock import MagicMock
 
 import lvra.pypeline.r0b_feature_maker as fm_module

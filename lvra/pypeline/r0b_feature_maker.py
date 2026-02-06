@@ -125,14 +125,15 @@ def make_features(input_path: Path,
         return 1
     
 
-
-
 # #-#-# #
 # MAIN  #
 # #-#-# #
 
 def main():
-    
+
+    # -------------------------------------------------- #
+    #                      SET UP                        #
+    # -------------------------------------------------- #
     logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
     # General settings and initialisation of the logger
     setup_dict = set_up(settings_path=SETTINGS_PATH, 
@@ -153,7 +154,9 @@ def main():
         logger.info("[EXIT] - No new stems to process - Closing sqlite connection and exiting (0).")
         return 0  # here this is a bash error code 0 = SUCCESS
     
-    # FOR EACH FILE WE HAVE TO PROCESS
+    # -------------------------------------------------- #
+    #     FOR EACH FILE WE HAVE TO PROCESS...            #
+    # -------------------------------------------------- #
     for stem in stem_list:
         # 1. Make the correct JSON file path (input) and csv file path (output)
         date = stem[:8]
@@ -165,10 +168,8 @@ def main():
                                   output_path = OUTPUT_PATH,
                                   logger = logger
                                   )
-        # 3. Updatee the feature_making table in SQLite depending on 
+        # 3. Update the feature_making table in SQLite depending on 
         #    whether we were successful or not at making our features
-        # TODO: Do I want to maybe change my exit codes? I know I wanted
-        # to be like bash and have 0 = success but it's a pain in my bum right now
         if exit_code in [0, -1]:
             if exit_code == 0:
                 status_code = 1 # SUCCESS
