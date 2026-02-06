@@ -26,7 +26,7 @@ def valid_settings_config():
     """Return a valid settings configuration dictionary."""
     return {
         'kafka_server': 'kafka.example.com:9092',
-        'my_topic': 'ztf_topic',
+        'my_topic': 'lasair_topic',
         'group_id': 'test_group_123',
         'base_dir': '/tmp/test_base',
         'endpoint': 'https://lasair.example.com/api'
@@ -38,7 +38,7 @@ def valid_model_config():
     """Return a valid model configuration dictionary."""
     return {
         'MODEL_PATH': '/models/classifier_v1',
-        'MODEL_NAME': 'ZTF_Classifier',
+        'MODEL_NAME': 'Classifier',
         'MODEL_VERSION': 'v1.2.3',
         'TOPIC_OUT': 'predictions',
         'EXPLANATION': 'Classifies transient events',
@@ -182,7 +182,7 @@ class TestSetUpFunction:
         # Create config missing 'endpoint' field
         incomplete_config = {
             'kafka_server': 'kafka.example.com:9092',
-            'my_topic': 'ztf_topic',
+            'my_topic': 'lasair_topic',
             'group_id': 'test_group_123',
             'base_dir': '/tmp/test_base',
             # 'endpoint' is missing!
@@ -257,7 +257,7 @@ class TestSetUpFunction:
         # Use a base_dir that doesn't exist yet
         config = {
             'kafka_server': 'kafka.example.com:9092',
-            'my_topic': 'ztf_topic',
+            'my_topic': 'lasair_topic',
             'group_id': 'test_group_123',
             'base_dir': str(tmp_path / "deeply" / "nested" / "base"),
             'endpoint': 'https://lasair.example.com/api'
