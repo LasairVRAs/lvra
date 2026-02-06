@@ -129,8 +129,8 @@ def make_features(input_path: Path,
         features_df.to_csv(output_path, index=False)
 
         if len(objectIds_withoutAlert_col) > 0:
-            logger.warning(f"[MAKE_FEATURES] WARNING - {len(objectIds_withoutAlert_col)} diaObjectIds had no alert key in their JSON entry"
-                           f"and are NOT INCLUDED IN THE OUTPUT. List of diaObjectIds:\n{objectIds_withoutAlert_col}")
+            logger.warning(f"[MAKE_FEATURES] WARNING - {len(objectIds_withoutAlert_col)}/{features_df.shape[0]} diaObjectIds had no alert key in their JSON entry"
+                           f"and are NOT INCLUDED IN THE OUTPUT. List of diaObjectIds:\n{str(objectIds_withoutAlert_col)}")
             logger.info(f"[MAKE_FATURES] PARTIAL SUCCESS - {output_path} created ")
             
         logger.info(f"[MAKE_FEATURES] SUCCESS - {output_path} created ")
