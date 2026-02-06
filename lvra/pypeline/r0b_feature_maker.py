@@ -79,6 +79,25 @@ def stemlist_from_logdb(sqlite_cursor,
 def make_features(input_path: Path,
                   output_path: Path,
                   logger):
+    """Takes the path to a json file, extracts the features and outputs a csv file with those features.
+
+    Parameters
+    ----------
+    input_path: Path
+        The path to the json file we want to extract features from. Expected to be in the format 
+        "../../../data/json/YYYY/YYYYMMDD_HHMMSS.json"
+    output_path: Path
+        The path to the csv file we want to output. Expected to be in the format 
+        "../../../data/csv/YYYY/YYYYMMDD_HHMMSS.csv"
+    logger: logging.Logger
+        The logger object to log info, warnings and errors to the log file.
+
+    Returns
+    -------
+    exit_code: int
+        The exit code to log in the feature_making table in SQLite. 
+        0 = SUCCESS, 1 = FAILURE, 21 = INPUT FILE NOT FOUND, 22 = OUTPUT FILE NOT FOUND, 30 = KEY ERROR IN JSON
+    """
 
     # input: logging, input path, output path, endpoint
     # output: exit code
