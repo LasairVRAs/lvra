@@ -344,7 +344,7 @@ class TestReadModelConfig:
         # Create config missing MODEL_VERSION
         incomplete_config = {
             'MODEL_PATH': '/models/classifier_v1',
-            'MODEL_NAME': 'ZTF_Classifier',
+            'MODEL_NAME': 'Classifier',
             # 'MODEL_VERSION' is missing!
             'TOPIC_OUT': 'predictions',
             'EXPLANATION': 'Classifies transient events',
@@ -409,7 +409,7 @@ class TestReadModelConfig:
         for missing_field in required_fields:
             config = {
                 'MODEL_PATH': '/models/classifier_v1',
-                'MODEL_NAME': 'ZTF_Classifier',
+                'MODEL_NAME': 'Classifier',
                 'MODEL_VERSION': 'v1.2.3',
                 'TOPIC_OUT': 'predictions',
                 'EXPLANATION': 'Classifies transient events',
@@ -485,7 +485,7 @@ class TestConfigValidation:
         # Config with typo: 'MODEL_NANE' instead of 'MODEL_NAME'
         typo_config = {
             'MODEL_PATH': '/models/classifier_v1',
-            'MODEL_NANE': 'ZTF_Classifier',  # TYPO!
+            'MODEL_NANE': 'Classifierefe',  # TYPO!
             'MODEL_VERSION': 'v1.2.3',
             'TOPIC_OUT': 'predictions',
             'EXPLANATION': 'Classifies transient events',
@@ -505,21 +505,29 @@ class TestConfigValidation:
         assert status_code == 99
         assert result is None
 
-
-# #-#-#-#-#-#-#-# #
-#   EASTER EGG!   #
-# #-#-#-#-#-#-#-# #
-
-def test_yaml_aint_markup_language():
-    """
-    Fun fact: YAML originally stood for "Yet Another Markup Language"
-    but was changed to the recursive acronym "YAML Ain't Markup Language"
-    to distinguish it from true markup languages.
-    
-    This test always passes, just like how YAML configs always parse...
-    wait, no, that's not right. 😅
-    """
-    assert "YAML" == "YAML"  # At least this is reliable!
+    # Test that the log_dir, csv_dir and json_dir exist!
+    @patch('lvra.utils.misc.datetime')
+    @patch('lvra.utils.misc.logging')
+    def test_directory_creation_and_existence(
+        self,
+        mock_logging,
+        mock_datetime,
+        temp_settings_file,
+        mock_logger
+    ):
+        """Test that set_up creates the log, csv and json directories and they exist."""
+        mock_datetime.utcnow.return_value = datetime(2026, 1, 27, 10, 30, 45)
+        
+        result = misc.set_up(
+            settings_path=temp_settings_file,
+            log_name="test.log",
+            logger=mock_logger
+        )
+        
+        # Verify directories were created and exist
+        assert result['log_dir'].exists() and result['log_dir'].is_dir()
+        assert result['csv_dir'].exists() and result['csv_dir'].is_dir()
+        assert result['json_dir'].exists() and result['json_dir'].is_dir()
 
 
 

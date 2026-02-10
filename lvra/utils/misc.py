@@ -56,6 +56,8 @@ def set_up(settings_path: Path,
 
     # if log file doesn't exist, create it
     setup_dict['log_dir'].mkdir(parents=True, exist_ok=True)
+    setup_dict['csv_dir'].mkdir(parents=True, exist_ok=True)
+    setup_dict['json_dir'].mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s",
