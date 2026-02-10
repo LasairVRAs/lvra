@@ -42,7 +42,8 @@ def test_json2cleandf():
     # NOTE: This is test file specific
     assert 'diaObjectId' in clean_df.columns, "diaObjectId column should exist in clean data frame"
     assert 'diaSourceId' in clean_df.columns, "diaSourceId column should exist in clean data frame"
-    assert clean_df.shape[0] == 64, "The clean data frame should have 64 rows. WARNING: TEST FILE SPECIFIC"
-    assert clean_df.shape[1] == 120, "The clean data frame should have 120 columns. WARNING: TEST FILE SPECIFIC"
-
-
+    assert 'N_above_22' in clean_df.columns, "N_above_22 column should exist in clean data frame"
+    assert clean_df.diaSourceId.shape[0] == clean_df.shape[0], "diaSourceId column should have same number of rows as clean data frame"
+    assert clean_df.shape[0] == 32, "The clean data frame should have 32 rows. WARNING: TEST FILE SPECIFIC"
+    assert clean_df.shape[1] == 137, "The clean data frame should have 137 columns. WARNING: TEST FILE SPECIFIC"
+ 

@@ -147,7 +147,7 @@ def json2cleandf(path: Path):
 
     # 4. Make the filter output df
     #    Take all rows (axis=0), and every column (axis=1) except the last one ('alert')
-    filterOutput_df = df.iloc[:,:-1]
+    filterOutput_df = json_df.iloc[:,:-1]
 
     # 5. Join our Lasair filter features to the lates diaSourceId features
     clean_df = latestSourceIds_df.join(filterOutput_df, lsuffix='_sourceId')
