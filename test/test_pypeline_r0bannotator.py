@@ -36,10 +36,80 @@ def _create_db(path: str):
         );
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS threshold_flags_provenance(
+        ID INTEGER PRIMARY KEY,
+        diaObjectId INTEGER,                                                                                             
+        diaSourceId INTEGER,                                                                                             
+        stem TEXT,
+        n_gt22 INTEGER,
+        n_gt21 INTEGER,
+        n_gt20 INTEGER,
+        n_gt19 INTEGER,
+        n_gt18 INTEGER,
+        brighter22 INTEGER,
+        brighter21 INTEGER,
+        brighter20 INTEGER,
+        brighter19 INTEGER,
+        brighter18 INTEGER,
+        first22 INTEGER,
+        first21 INTEGER,
+        first20 INTEGER,
+        first19 INTEGER,
+        first18 INTEGER,
+        timestamp TEXT NOT NULL DEFAULT current_timestamp);
+        """
+    )
     con.commit()
     return con, cur
 
 # Tests ----------------------------------------------------------------------
+
+# Test get threshold flags function!
+
+def test_get_threshold_flags(tmp_path):
+    dbfile = str(tmp_path / "test_flags.db")
+    con, cur = _create_db(dbfile)
+
+    # insert a threshold flags provenance row that should be returned
+    cur.execute(
+        """
+        INSERT INTO threshold_flags_provenance (ID, diaObjectId, diaSourceId, stem, n_gt22, n_gt21, n_gt20, n_gt19, n_gt18,
+                                              brighter22, brighter21, brighter20, brighter19, brighter18,
+                                              first22, first21, first20, first19, first18)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """,
+        (0, 1680, 1780, "stem1", 3, 2, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0)
+    )
+    con.commit()    
+
+    # reopen connection with proper row_factory so cursor returns dict rows (what function expects)
+    con_with_factory = sqlite3.connect(dbfile)
+    con_with_factory.row_factory = lambda cursor, row: {col[0]: row[i] for i, col in enumerate(cursor.description)}
+    cur_with_factory = con_with_factory.cursor()
+    exit_code, flags_dict = annotator_module.get_threshold_flags(sqlite_cursor=cur_with_factory,
+                                                              diaSourceId=1780,
+                                                              stem="stem1",
+                                                              logger=logging.getLogger("test"))
+    assert exit_code == 0
+    assert flags_dict == {
+        'n_gt22': 3,
+        'n_gt21': 2,
+        'n_gt20': 1,
+        'n_gt19': 0,
+        'n_gt18': 0,
+        'brighter22': 1,
+        'brighter21': 1,
+        'brighter20': 0,
+        'brighter19': 0,
+        'brighter18': 0,
+        'first22': 1,
+        'first21': 0,
+        'first20': 0,
+        'first19': 0,
+        'first18': 0,
+    }
 
 def test_get_pending_annotations(tmp_path):
     dbfile = str(tmp_path / "test_pending.db")
@@ -105,7 +175,11 @@ def test_annotate_loop_success_and_failure(monkeypatch, tmp_path):
         "URL": "http://example",
     }
     logger = logging.getLogger("test_annotate")
-    success_dois, failure_dois, stem_list = annotator_module.annotate_loop(pending, L, model_conf_dict, logger)
+    success_dois, failure_dois, stem_list = annotator_module.annotate_loop(pending, 
+                                                                           L, 
+                                                                           model_conf_dict, 
+                                                                           sqlite_cursor=None,  # not used in this test
+                                                                           logger=logger)
 
     assert success_dois == ["DO1"]
     assert failure_dois == ["DO2"]

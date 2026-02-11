@@ -23,8 +23,14 @@ if env_settings:                                 # from environment variable
 else:                                            # or go to default file
     SETTINGS_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "public_settings.yaml"
 
+
+r0b_config_path= os.environ.get("LVRA_R0B_CONFIG")
+if r0b_config_path:                                 # from environment variable
+    MODEL_CONFIG_FILE = Path(r0b_config_path)
+else:                                            # or go to default file
+    MODEL_CONFIG_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "r0b_config.yaml"
+    
 LOG_NAME = "r0b_predict.log"
-MODEL_CONFIG_FILE = "r0b_config.yaml"
 
 
 # #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-# #

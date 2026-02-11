@@ -47,21 +47,119 @@ def get_pending_annotations(sqlite_cursor,  model_name, model_version, logger, )
     list_results = res.fetchall()
     pending_anotations=pd.DataFrame(list_results, dtype=str)
 
+
     logger.info(f"[SQLITE] SUCCESS | Pending annotations - n={pending_anotations.shape[0]}")
 
     return pending_anotations
 
-def annotate_loop(pending_annotations, L, model_conf_dict, logger):
+def get_threshold_flags(sqlite_cursor, diaSourceId, stem, logger):
+
+    exit_code = 0
+    try:
+        _sql = f"SELECT * FROM threshold_flags_provenance "\
+            f"WHERE diaSourceId={diaSourceId} and stem='{stem}';"
+        res = sqlite_cursor.execute(_sql)
+        flags = res.fetchall()
+        if len(flags) == 0:
+            logger.warning(f"[ANNOTATING] No threshold flags found for diaSourceId={diaSourceId} stem={stem} - This is UNEXEPCTED. All Falgs set to Null")
+            flags_dict = {
+                    'n_gt22': None,
+                    'n_gt21': None,
+                    'n_gt20': None,
+                    'n_gt19': None,
+                    'n_gt18': None,
+                    'brighter22': None,
+                    'brighter21': None,
+                    'brighter20': None,
+                    'brighter19': None,
+                    'brighter18': None,
+                    'first22': None,
+                    'first21': None,
+                    'first20': None,
+                    'first19': None,
+                    'first18': None,
+                }   
+        elif len(flags) > 1:
+            logger.warning(f"[ANNOTATING] More than 1 row found in threshold_flags_provenance for diaSourceId={diaSourceId} stem={stem} - This is UNEXPECTED. Taking the first row but this might not be what you intended.")
+        else:
+            #logger.info(f"[ANNOTATING] Threshold flags found for diaSourceId={diaSourceId} stem={stem} - Adding to annotation provenance")
+            pass
+
+        if len(flags) >= 1:
+                flags_dict = {
+                    'n_gt22': flags[0]['n_gt22'],
+                    'n_gt21': flags[0]['n_gt21'],
+                    'n_gt20': flags[0]['n_gt20'],
+                    'n_gt19': flags[0]['n_gt19'],
+                    'n_gt18': flags[0]['n_gt18'],
+                    'brighter22': flags[0]['brighter22'],
+                    'brighter21': flags[0]['brighter21'],
+                    'brighter20': flags[0]['brighter20'],
+                    'brighter19': flags[0]['brighter19'],
+                    'brighter18': flags[0]['brighter18'],
+                    'first22': flags[0]['first22'],
+                    'first21': flags[0]['first21'],
+                    'first20': flags[0]['first20'],
+                    'first19': flags[0]['first19'],
+                    'first18': flags[0]['first18'],
+                }
+    except Exception as e:
+        logger.error(f"[ANNOTATING] Failed to grab threshold flags for diaSourceId={diaSourceId} stem={stem} - reason: {e} - All flags set to None")
+        flags_dict = {
+            'n_gt22': None,
+            'n_gt21': None,
+            'n_gt20': None,
+            'n_gt19': None,
+            'n_gt18': None,
+            'brighter22': None,
+            'brighter21': None,
+            'brighter20': None,
+            'brighter19': None,
+            'brighter18': None,
+            'first22': None,
+            'first21': None,
+            'first20': None,
+            'first19': None,
+            'first18': None,
+        }
+        exit_code = 99
+
+    # make a dict to return
+
+    return exit_code, flags_dict
+
+def annotate_loop(pending_annotations, 
+                  L, 
+                  model_conf_dict, 
+                  sqlite_cursor,
+                  logger):
     success_dois=[]
     failure_dois=[]
     stem_list = []
 
     for i, row in pending_annotations.iterrows():
-        _class_dict = {'model_name': row['model_name'], 
-                    'model_version': row['model_version'], 
-                    'provenance_ID': row['ID'],
-                    'blame_diaSourceId': row['diaSourceId'],
-                    'stem': row['stem']
+        # Grab the threshold flags from the sqlite table
+        exit_code, flags_dict = get_threshold_flags(sqlite_cursor, row['diaSourceId'], row['stem'], logger)
+
+        _class_dict = {'blame_diaSourceId': row['diaSourceId'],
+                       'n_gt22': flags_dict['n_gt22'],
+                       'n_gt21': flags_dict['n_gt21'],
+                       'n_gt20': flags_dict['n_gt20'], 
+                       'n_gt19': flags_dict['n_gt19'],
+                       'n_gt18': flags_dict['n_gt18'],
+                       'brighter22': flags_dict['brighter22'], 
+                       'brighter21': flags_dict['brighter21'], 
+                       'brighter20': flags_dict['brighter20'], 
+                       'brighter19': flags_dict['brighter19'], 
+                       'brighter18': flags_dict['brighter18'],
+                       'first22': flags_dict['first22'], 
+                       'first21': flags_dict['first21'], 
+                       'first20': flags_dict['first20'], 
+                       'first19': flags_dict['first19'], 
+                       'first18': flags_dict['first18'],  
+                       'model_version': row['model_version'], 
+                       'provenance_ID': row['ID'],
+                       'stem': row['stem']
                     }
         try:
             L.annotate(topic=model_conf_dict['TOPIC_OUT'],
@@ -166,7 +264,8 @@ def main():
     success_dois, failure_dois, stem_list =annotate_loop(pending_annotations,
                                                          L, 
                                                          model_conf_dict, 
-                                                         logger)
+                                                         sqlite_cursor=cur,
+                                                         logger=logger)
     
     # LOGGING AND STATUS CODES IN DIFFERENT SCENARIOS
     if len(success_dois) == pending_annotations.shape[0]:

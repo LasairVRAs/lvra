@@ -21,6 +21,31 @@ def _create_db(path: str):
         );
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS threshold_flags_provenance(
+        ID INTEGER PRIMARY KEY,
+        diaObjectId INTEGER,                                                                                             
+        diaSourceId INTEGER,                                                                                             
+        stem TEXT,
+        n_gt22 INTEGER,
+        n_gt21 INTEGER,
+        n_gt20 INTEGER,
+        n_gt19 INTEGER,
+        n_gt18 INTEGER,
+        brighter22 INTEGER,
+        brighter21 INTEGER,
+        brighter20 INTEGER,
+        brighter19 INTEGER,
+        brighter18 INTEGER,
+        first22 INTEGER,
+        first21 INTEGER,
+        first20 INTEGER,
+        first19 INTEGER,
+        first18 INTEGER,
+        timestamp TEXT NOT NULL DEFAULT current_timestamp);
+        """
+    )
     con.commit()
     return con, cur
 
@@ -53,7 +78,7 @@ def test_make_features_file_not_found(monkeypatch, tmp_path):
     monkeypatch.setattr(fm_module, "json2cleandf", lambda path: (_ for _ in ()).throw(FileNotFoundError()))
 
     logger = logging.getLogger("test")
-    rc = fm_module.make_features(input_path=Path("/nonexistent.json"), output_path=out, logger=logger)
+    rc, __ = fm_module.make_features(input_path=Path("/nonexistent.json"), output_path=out, logger=logger)
 
     assert rc == 21
     assert not out.exists()
@@ -76,7 +101,7 @@ def test_make_features_success_writes_csv(monkeypatch, tmp_path):
     monkeypatch.setattr(fm_module, "json2cleandf", lambda path: (_sample_clean_df(), []))
 
     logger = logging.getLogger("test")
-    rc = fm_module.make_features(input_path=Path("/fake.json"), output_path=out, logger=logger)
+    rc, __ = fm_module.make_features(input_path=Path("/fake.json"), output_path=out, logger=logger)
 
     assert rc == -1  # code in implementation returns -1 on successful write
     assert out.exists()
@@ -93,7 +118,7 @@ def test_make_features_partial_missing_alerts(monkeypatch, tmp_path):
     monkeypatch.setattr(fm_module, "json2cleandf", lambda path: (_sample_clean_df(), [12345]))
 
     logger = logging.getLogger("test")
-    rc = fm_module.make_features(input_path=Path("/fake.json"), output_path=out, logger=logger)
+    rc, __ = fm_module.make_features(input_path=Path("/fake.json"), output_path=out, logger=logger)
 
     assert rc == -1
     assert out.exists()
@@ -143,7 +168,68 @@ def test_main_updates_feature_making_status(monkeypatch, tmp_path):
     assert val == -1
     con2.close()
 
+def test_threshold_flags_provenance(monkeypatch, tmp_path):
+    """Test that threshold_flags_provenance correctly inserts rows into the DB and commits."""
+    dbfile = str(tmp_path / "provenance.db")
+    con, cur = _create_db(dbfile)
 
+    # Create a sample clean_df with the necessary columns
+    clean_df = pd.DataFrame({
+        "diaObjectId": [1],
+        "diaSourceId": [100],
+        "N_above_22": [2],
+        "N_above_21": [1],
+        "N_above_20": [0],
+        "N_above_19": [0],
+        "N_above_18": [0],
+        "is_above_22": [True],
+        "is_above_21": [True],
+        "is_above_20": [False],
+        "is_above_19": [False],
+        "is_above_18": [False],
+        "first_time_22": [True],
+        "first_time_21": [True],
+        "first_time_20": [False],
+        "first_time_19": [False],
+        "first_time_18": [False]
+    })
+
+    stem = "20260202_102448"
+    logger = logging.getLogger("test")
+
+    # Call the function under test
+    exit_code = fm_module.threshold_flags_provenance(clean_df=clean_df, 
+                                                     stem=stem, 
+                                                     sqlite_cursor=cur,
+                                                     connection=con, 
+                                                     logger=logger)
+
+    assert exit_code == 0
+
+    # Verify that the row was inserted into the DB
+    cur.execute("SELECT * FROM threshold_flags_provenance WHERE diaObjectId = ? AND diaSourceId = ?;", (1, 100))
+    row = cur.fetchone()
+    assert row is not None
+    # 0 is the INDEX
+    assert row[1] == 1  # diaObjectId
+    assert row[2] == 100  # diaSourceId
+    assert row[3] == stem  # stem
+    assert row[4] == 2  # N_above_22
+    assert row[5] == 1  # N_above_21
+    assert row[6] == 0  # N_above_20
+    assert row[7] == 0  # N_above_19
+    assert row[8] == 0  # N_above_18
+    assert row[9] == 1  # is_above_22
+    assert row[10] == 1  # is_above_21
+    assert row[11] == 0  # is_above_20
+    assert row[12] == 0  # is_above_19
+    assert row[13] == 0  # is_above_18 
+    assert row[14] == 1  # first_time_22
+    assert row[15] == 1  # first_time_21
+    assert row[16] == 0  # first_time_20
+    assert row[17] == 0  # first_time_19
+    assert row[18] == 0  # first_time_18    
+    
 TEST_STEM = "20260202_102448"
 
 def test_stemlist_from_logdb_no_matches():
@@ -178,7 +264,7 @@ def test_make_features_with_real_json(tmp_path, monkeypatch):
 
     if repo_test_json.exists():
         # run make_features on the real JSON file (integration-style)
-        rc = fm_module.make_features(input_path=repo_test_json, output_path=out_csv, logger=logger)
+        rc, __ = fm_module.make_features(input_path=repo_test_json, output_path=out_csv, logger=logger)
         # implementation returns -1 on success/partial-success and writes file
         assert rc in (-1, 0, 1)  # be permissive if code changes; check file if rc indicates success-ish
         if rc in (-1, 0):

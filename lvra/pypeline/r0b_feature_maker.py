@@ -76,6 +76,51 @@ def stemlist_from_logdb(sqlite_cursor,
     return stem_ls
 
 
+def threshold_flags_provenance(clean_df,
+                               stem,
+                             sqlite_cursor,
+                             connection,
+                             logger
+                             ):
+    
+
+    columns = ['diaObjectId',
+               'diaSourceId', 
+               'N_above_22', 'N_above_21', 'N_above_20', 'N_above_19', 'N_above_18',
+               'is_above_22', 'is_above_21', 'is_above_20', 'is_above_19', 'is_above_18',
+               'first_time_22', 'first_time_21', 'first_time_20', 'first_time_19', 'first_time_18',
+               ]
+
+    try:
+        _df = clean_df[columns]
+    except KeyError as e:
+        logger.error(f"[ADD_FLAG_PROVENANCE_ROWS] FAIL - reason = KeyError {e} - columns not found in clean_df")
+        return 99
+    
+    for index, row in _df.iterrows():
+        sql="INSERT INTO threshold_flags_provenance "\
+            "(diaObjectId, diaSourceId, stem, " \
+            "n_gt22, n_gt21, n_gt20, n_gt19, n_gt18,"\
+            "brighter22, brighter21, brighter20, brighter19, brighter18, "\
+            "first22, first21, first20, first19, first18) "\
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        
+        values = (row['diaObjectId'], row['diaSourceId'], stem,
+                  row['N_above_22'], row['N_above_21'], row['N_above_20'], row['N_above_19'], row['N_above_18'],
+                  row['is_above_22'], row['is_above_21'], row['is_above_20'], row['is_above_19'], row['is_above_18'],
+                  row['first_time_22'], row['first_time_21'], row['first_time_20'], row['first_time_19'], row['first_time_18']
+                 )
+        try:
+            sqlite_cursor.execute(sql, values)
+        except Exception as e:
+            logger.error(f"[ADD_FLAG_PROVENANCE_ROWS] FAIL - reason = {e} - diaObjectId={row['diaObjectId']} diaSourceId={row['diaSourceId']}")
+            return 99
+
+    connection.commit()
+    logger.info(f"[ADD_FLAG_PROVENANCE_ROWS] SUCCESS - Threshold flags logged in sqlite3 for stem={stem}")
+    return 0
+
+
 def make_features(input_path: Path,
                   output_path: Path,
                   logger):
@@ -108,13 +153,13 @@ def make_features(input_path: Path,
         clean_df, objectIds_withoutAlert_col = json2cleandf(input_path)
     except FileNotFoundError:
         logger.error(f"[MAKE_FEATURES] FAIL - reason = INPUT FileNotFound - inpath={input_path}")
-        return 21
+        return 21, None
     except KeyError as e:
         logger.error(f"[MAKE_FEATURES] FAIL - reason = KeyError {e}")
-        return 30
+        return 30, None
     except Exception as e:
         logger.error(f"[MAKE_FEATURES] FAIL - reason={e}")
-        return 1
+        return 1, None
 
     try:
         # MAKE NEW FEATURES AND REMOVE COLUMNS WE DON'T WANT
@@ -134,14 +179,14 @@ def make_features(input_path: Path,
             logger.info(f"[MAKE_FATURES] PARTIAL SUCCESS - {output_path} created ")
             
         logger.info(f"[MAKE_FEATURES] SUCCESS - {output_path} created ")
-        return -1
+        return -1, clean_df
 
     except FileNotFoundError:
         logger.error("[MAKE_FEATURES] FAIL - reason= OUTPUT FileNotFound")
-        return 22
+        return 22, None
     except Exception as e:
         logger.error(f"[MAKE_FEATURES] FAIL -  reason={e}")
-        return 1
+        return 1, clean_df
     
 
 # #-#-# #
@@ -183,13 +228,29 @@ def main():
         OUTPUT_PATH = setup_dict['csv_dir'].parent / date /  f"{stem}.csv"
 
         # 2. Make the features and so
-        exit_code = make_features(input_path = INPUT_PATH,
-                                  output_path = OUTPUT_PATH,
-                                  logger = logger
-                                  )
+        exit_code, clean_df = make_features(input_path = INPUT_PATH,
+                                            output_path = OUTPUT_PATH,
+                                            logger = logger
+                                            )
+        
+        
         # 3. Update the feature_making table in SQLite depending on 
         #    whether we were successful or not at making our features
+        #    Also records the threshold flags into their provenance table
         if exit_code in [0, -1]:
+            # WORKED AT LEAST A BIT SO CAN DO THE THE THRESHOLD FLAGS 
+            prov_exit_code = threshold_flags_provenance(clean_df=clean_df,
+                                                        stem=stem,
+                                                        sqlite_cursor=cur,
+                                                        connection=con,
+                                                        logger=logger
+                                                        )
+            if prov_exit_code != 99:
+                logger.info(f"[ADD FLAG PROVENANCE] SUCCESS - provenance rows added for stem={stem}")
+            else:
+                logger.error(f"[ADD FLAG PROVENANCE] FAIL - reason = see previous logs for details - stem={stem}")
+
+            # UPDATE THE FEATURE_MAKING STATUS
             if exit_code == 0:
                 status_code = 1 # SUCCESS
             else:
@@ -200,6 +261,7 @@ def main():
 
             logger.info(f"[SQLITE] stem={stem} | status={status_code}")
         else:
+            # FAILED so just log 
             if exit_code == 1:
                 status_code = 99  # generic failure
             else:

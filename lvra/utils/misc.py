@@ -1,4 +1,5 @@
 import hashlib
+import os
 from pathlib import Path
 import logging
 from datetime import datetime
@@ -10,7 +11,8 @@ def set_up(settings_path: Path,
            log_name: str,
            logger
           ):
-    """Creates the set_up dictionary
+    """Creates the set_up dictionary. Takes base dir from envrionment PREFERENTIALLY, if not 
+    exist then takes it form the config file.
     
     Parameters
     ----------    
@@ -38,21 +40,27 @@ def set_up(settings_path: Path,
     current_day = datetime.utcnow().strftime("%Y%m%d")
     sub_dir = Path(current_year) / Path(current_day)
     
+    base_dir_path = os.environ.get("LVRA_DATA_ROOT")
 
     with settings_path.open("r") as settings:
         config = yaml.safe_load(settings)
+        if base_dir_path:                                 # from environment variable
+            base_dir = Path(base_dir_path)
+        else:                                            # or go to default file
+            base_dir = Path(config['base_dir'])
+
+
         setup_dict = {'kafka_server': config['kafka_server'],                  # URL of the server
                       'my_topic': config['my_topic'],                          # topic associated with filter
                       'group_id': config['group_id'],                          # id used to keep your "place" in queue
-                      'base_dir': Path(config['base_dir']),          
-                      'json_dir': Path(config['base_dir'])/ "JSON" / sub_dir,  # where lasair input data stored
-                      'csv_dir':  Path(config['base_dir']) / "csv" / sub_dir,  # where csv feature output files stored
-                      'log_dir':  Path(config['base_dir']) / "logs" / sub_dir, 
-                      'log_db':  Path(config['base_dir']) / "db" / "log.db",   # sqlite log db NOT IN A YEAR/DAY SUBDIR    
+                      'base_dir': base_dir,          
+                      'json_dir': base_dir / "JSON" / sub_dir,  # where lasair input data stored
+                      'csv_dir':  base_dir / "csv" / sub_dir,  # where csv feature output files stored
+                      'log_dir':  base_dir / "logs" / sub_dir, 
+                      'log_db':  base_dir / "db" / "log.db",   # sqlite log db NOT IN A YEAR/DAY SUBDIR    
                       'endpoint': config['endpoint'],                          # url endpoint Lasair
                      }
 
-    
 
     # if log file doesn't exist, create it
     setup_dict['log_dir'].mkdir(parents=True, exist_ok=True)
