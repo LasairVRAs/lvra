@@ -146,7 +146,7 @@ def main():
 
             # SQLITE insert diaObjectIds into the diaobjid_stem table
             # if the row exists, update the stem column to be the current stem
-            sql_diaobjid_stem = "INSERT INTO diaobjid_stems (diaObjectId, stem) VALUES (?, ?) ON CONFLICT(diaObjectId) DO UPDATE SET stem=excluded.stem"
+            sql_diaobjid_stem = "INSERT INTO diaobjid_stems (diaObjectId, stem, timestamp) VALUES (?, ?, current_timestamp) ON CONFLICT(diaObjectId) DO UPDATE SET stem=excluded.stem"
             for diaObjectId in diaObjectId_list:
                 cur.execute(sql_diaobjid_stem, (diaObjectId, stem))
 

@@ -61,9 +61,9 @@ def mock_consumer(mock_kafka_message):
     
     # Default: return 3 messages, then None
     messages = [
-        mock_kafka_message('ZTF21aaaaaaa'),
-        mock_kafka_message('ZTF21bbbbbbb'),
-        mock_kafka_message('ZTF21ccccccc'),
+        mock_kafka_message('LSSTaaaaaaa'),
+        mock_kafka_message('LSSTbbbbbbb'),
+        mock_kafka_message('LSSTccccccc'),
         None  # End of messages
     ]
     consumer.poll.side_effect = messages
@@ -121,9 +121,9 @@ class TestMainHappyPath:
         with open(expected_file, 'r') as f:
             data = json.load(f)
         assert len(data) == 3
-        assert data[0]['diaObjectId'] == 'ZTF21aaaaaaa'
-        assert data[1]['diaObjectId'] == 'ZTF21bbbbbbb'
-        assert data[2]['diaObjectId'] == 'ZTF21ccccccc'
+        assert data[0]['diaObjectId'] == 'LSSTaaaaaaa'
+        assert data[1]['diaObjectId'] == 'LSSTbbbbbbb'
+        assert data[2]['diaObjectId'] == 'LSSTccccccc'
         
         # Verify SQLite calls
         mock_sqlite3.connect.assert_called_once_with(mock_setup_dict['log_db'])
@@ -141,10 +141,10 @@ class TestMainHappyPath:
         )
         
         # Check diaObjectId inserts (3 of them)
-        expected_sql = "INSERT INTO diaobjid_stems (diaObjectId, stem) VALUES (?, ?) ON CONFLICT(diaObjectId) DO UPDATE SET stem=excluded.stem"
-        assert mock_cur.execute.call_args_list[2] == call(expected_sql, ('ZTF21aaaaaaa', '20240115_103045'))
-        assert mock_cur.execute.call_args_list[3] == call(expected_sql, ('ZTF21bbbbbbb', '20240115_103045'))
-        assert mock_cur.execute.call_args_list[4] == call(expected_sql, ('ZTF21ccccccc', '20240115_103045'))
+        expected_sql = "INSERT INTO diaobjid_stems (diaObjectId, stem, timestamp) VALUES (?, ?, current_timestamp) ON CONFLICT(diaObjectId) DO UPDATE SET stem=excluded.stem"
+        assert mock_cur.execute.call_args_list[2] == call(expected_sql, ('LSSTaaaaaaa', '20240115_103045'))
+        assert mock_cur.execute.call_args_list[3] == call(expected_sql, ('LSSTbbbbbbb', '20240115_103045'))
+        assert mock_cur.execute.call_args_list[4] == call(expected_sql, ('LSSTccccccc', '20240115_103045'))
         
         mock_con.commit.assert_called_once()
         mock_con.close.assert_called_once()
@@ -172,7 +172,7 @@ class TestMainHappyPath:
         # Consumer returns byte-encoded messages
         consumer = Mock()
         consumer.poll.side_effect = [
-            mock_kafka_message('ZTF21test001', as_bytes=True),
+            mock_kafka_message('LSSTtest001', as_bytes=True),
             None
         ]
         mock_lasair_consumer.return_value = consumer
@@ -194,7 +194,7 @@ class TestMainHappyPath:
         
         with open(expected_file, 'r') as f:
             data = json.load(f)
-        assert data[0]['diaObjectId'] == 'ZTF21test001'
+        assert data[0]['diaObjectId'] == 'LSSTtest001'
 
 
 class TestEmptyPoll:
@@ -394,7 +394,7 @@ class TestEdgeCases:
         # For testing, we'll just verify the loop counter works
         consumer = Mock()
         # Return messages indefinitely (more than the limit)
-        consumer.poll.return_value = mock_kafka_message('ZTF21test001')
+        consumer.poll.return_value = mock_kafka_message('LSSTtest001')
         mock_lasair_consumer.return_value = consumer
         
         mock_con = MagicMock()
@@ -433,21 +433,24 @@ def real_sqlite_db(tmp_path):
     cur.execute("""
         CREATE TABLE feature_making (
             stem TEXT PRIMARY KEY,
-            r0b INTEGER
+            r0b INTEGER,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
     
     cur.execute("""
         CREATE TABLE annotating (
             stem TEXT PRIMARY KEY,
-            r0b INTEGER
+            r0b INTEGER, 
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
     
     cur.execute("""
         CREATE TABLE diaobjid_stems (
             diaObjectId TEXT PRIMARY KEY,
-            stem TEXT
+            stem TEXT, 
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP 
         )
     """)
     
