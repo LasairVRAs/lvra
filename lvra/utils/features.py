@@ -120,7 +120,7 @@ def json2cleandf(path: Path):
     for i in range(json_df.shape[0]):
         try: 
             latestSourceId_dfList.append(pd.DataFrame(json_df['alert'].values[i]['diaSourcesList'][-1], 
-                                                index=[0]))
+                                                index=[loop_index]))
             
             __lc = pd.DataFrame(json_df['alert'].values[i]['diaSourcesList'])
 
@@ -151,6 +151,10 @@ def json2cleandf(path: Path):
 
     # 5. Join our Lasair filter features to the lates diaSourceId features
     clean_df = latestSourceIds_df.join(filterOutput_df, lsuffix='_sourceId')
+
+    # 5.5 CHECK THAT I DIDN'T FUCK UP INDEXES
+    if sum(~(clean_df.diaObjectId == clean_df.diaObjectId_sourceId)) > 0:
+        raise ValueError("The diaObjectId from the filter output and the diaObjectId from the latest diaSourceId do not match for some rows. This should never happen, check your code.")
 
     # 6. Make the magnitude threshold flag feature dataframes
     #    The thresholds are for 22nd, 21st, 20th, 19th and 18th mag
