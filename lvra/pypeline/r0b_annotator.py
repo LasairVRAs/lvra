@@ -80,28 +80,28 @@ def get_threshold_flags(sqlite_cursor, diaSourceId, stem, logger):
                     'first18': None,
                 }   
         elif len(flags) > 1:
-            logger.warning(f"[ANNOTATING] More than 1 row found in threshold_flags_provenance for diaSourceId={diaSourceId} stem={stem} - This is UNEXPECTED. Taking the first row but this might not be what you intended.")
+            logger.warning(f"[ANNOTATING] More than 1 row found in threshold_flags_provenance for diaSourceId={diaSourceId} stem={stem} - Taking the LATEST Row.")
         else:
             #logger.info(f"[ANNOTATING] Threshold flags found for diaSourceId={diaSourceId} stem={stem} - Adding to annotation provenance")
             pass
 
         if len(flags) >= 1:
                 flags_dict = {
-                    'n_gt22': flags[0]['n_gt22'],
-                    'n_gt21': flags[0]['n_gt21'],
-                    'n_gt20': flags[0]['n_gt20'],
-                    'n_gt19': flags[0]['n_gt19'],
-                    'n_gt18': flags[0]['n_gt18'],
-                    'brighter22': flags[0]['brighter22'],
-                    'brighter21': flags[0]['brighter21'],
-                    'brighter20': flags[0]['brighter20'],
-                    'brighter19': flags[0]['brighter19'],
-                    'brighter18': flags[0]['brighter18'],
-                    'first22': flags[0]['first22'],
-                    'first21': flags[0]['first21'],
-                    'first20': flags[0]['first20'],
-                    'first19': flags[0]['first19'],
-                    'first18': flags[0]['first18'],
+                    'n_gt22': flags[-1]['n_gt22'],
+                    'n_gt21': flags[-1]['n_gt21'],
+                    'n_gt20': flags[-1]['n_gt20'],
+                    'n_gt19': flags[-1]['n_gt19'],
+                    'n_gt18': flags[-1]['n_gt18'],
+                    'brighter22': flags[-1]['brighter22'],
+                    'brighter21': flags[-1]['brighter21'],
+                    'brighter20': flags[-1]['brighter20'],
+                    'brighter19': flags[-1]['brighter19'],
+                    'brighter18': flags[-1]['brighter18'],
+                    'first22': flags[-1]['first22'],
+                    'first21': flags[-1]['first21'],
+                    'first20': flags[-1]['first20'],
+                    'first19': flags[-1]['first19'],
+                    'first18': flags[-1]['first18'],
                 }
     except Exception as e:
         logger.error(f"[ANNOTATING] Failed to grab threshold flags for diaSourceId={diaSourceId} stem={stem} - reason: {e} - All flags set to None")
