@@ -165,6 +165,8 @@ def main():
                                         )
         if status_code==0:
             logger.info(f"[PREDICT] SUCCESS - stem={stem}")
+            status_code=1 # so the sql table has the right status
+            # this is weird it's because i have a weird mix of exit codes and satus codes
 
         # UPDATE PROVENANCE TABLE
         # WARNING: There is another for-loop in this function
