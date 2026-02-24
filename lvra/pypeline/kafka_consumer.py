@@ -141,8 +141,10 @@ def main():
             # SQLITE initialising the rows for feature_making and annotating tables
             sql_feature_making = "INSERT INTO feature_making (stem, r0b) VALUES (?, 0)"
             sql_annotating = "INSERT INTO annotating (stem, r0b) VALUES (?, 0)"
+            sql_predict = "INSERT INTO predict (stem, r0b) VALUES (?, 0)"
             cur.execute(sql_feature_making, (stem,))
             cur.execute(sql_annotating, (stem,))
+            cur.execute(sql_predict, (stem,))
 
             # SQLITE insert diaObjectIds into the diaobjid_stem table
             # if the row exists, update the stem column to be the current stem
