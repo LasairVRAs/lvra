@@ -41,12 +41,12 @@ def stemlist_from_log(sqlite_cursor,
                       model_name,
                       logger,
                      ):
-    """Find the stems for which the feature files were made but annotating was not completed
+    """Find the stems for which the feature files from predict log table
     """
     
-    sql = "SELECT * FROM annotating JOIN feature_making ON " \
-        "annotating.stem=feature_making.stem "\
-        f"WHERE ABS(annotating.{model_name})!=1 AND ABS(feature_making.{model_name})=1;"
+    sql = "SELECT * FROM predict JOIN feature_making ON " \
+        "predict.stem=feature_making.stem "\
+        f"WHERE ABS(predict.{model_name})!=1 AND ABS(feature_making.{model_name})=1;"
     
     # TODO: AND CHECK STEM NOT IN PROVENANCE TABLE????
     # I WONDER IF DOING THIS EVERYTIME IS SLOWER THAN REPEATING PREDICION
@@ -179,6 +179,10 @@ def main():
                                 logger=logger
                                 )
         
+        sql = "UPDATE predict SET timestamp=current_timestamp, r0b = ? WHERE stem = ?;" 
+        cur.execute(sql, (status_code, stem))
+        con.commit()
+
     logger.info("[PREDICT] ----- END ------- ")
     return 0 # success shell exit code
 

@@ -28,16 +28,20 @@ def _create_db(path: str):
     )
     cur.execute(
         """
-        CREATE TABLE annotating (
+        CREATE TABLE predict (
             stem TEXT PRIMARY KEY,
+            timestamp TEXT NOT NULL DEFAULT current_timestamp,
             r0b INTEGER DEFAULT 0
         );
         """
     )
+
+
     cur.execute(
         """
         CREATE TABLE feature_making (
             stem TEXT PRIMARY KEY,
+            timestamp TEXT NOT NULL DEFAULT current_timestamp,
             r0b INTEGER DEFAULT 0
         );
         """
@@ -51,11 +55,11 @@ def test_stemlist_from_log_returns_stems(tmp_path):
     dbfile = str(tmp_path / "stems.db")
     con, cur = _create_db(dbfile)
 
-    # Insert rows: annotating.r0b != 1 and feature_making.r0b == 1 => should be selected
-    cur.execute("INSERT INTO annotating (stem, r0b) VALUES (?, ?);", ("stemA", 0))
+    # Insert rows: predict.r0b != 1 and feature_making.r0b == 1 => should be selected
+    cur.execute("INSERT INTO predict (stem, r0b) VALUES (?, ?);", ("stemA", 0))
     cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", ("stemA", 1))
     # Insert another which should NOT be selected
-    cur.execute("INSERT INTO annotating (stem, r0b) VALUES (?, ?);", ("stemB", 1))
+    cur.execute("INSERT INTO predict (stem, r0b) VALUES (?, ?);", ("stemB", 1))
     cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", ("stemB", 1))
     con.commit()
 
@@ -129,8 +133,8 @@ def test_main_missing_csv_continues_and_no_provenance_inserted(monkeypatch, tmp_
     dbfile = str(tmp_path / "missingcsv.db")
     con, cur = _create_db(dbfile)
 
-    # Prepare annotating + feature_making rows so stemlist returns a stem
-    cur.execute("INSERT INTO annotating (stem, r0b) VALUES (?, ?);", ("20260202_102448", 0))
+    # Prepare predict + feature_making rows so stemlist returns a stem
+    cur.execute("INSERT INTO predict (stem, r0b) VALUES (?, ?);", ("20260202_102448", 0))
     cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", ("20260202_102448", 1))
     con.commit()
     con.close()
@@ -164,8 +168,8 @@ def test_main_full_flow_calls_predict_and_writes_provenance(monkeypatch, tmp_pat
     con, cur = _create_db(dbfile)
 
     stem = "20260202_102448"
-    # Set annotating and feature_making to select this stem
-    cur.execute("INSERT INTO annotating (stem, r0b) VALUES (?, ?);", (stem, 0))
+    # Set predict and feature_making to select this stem
+    cur.execute("INSERT INTO predict (stem, r0b) VALUES (?, ?);", (stem, 0))
     cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", (stem, 1))
     con.commit()
     con.close()
