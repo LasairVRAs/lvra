@@ -140,11 +140,15 @@ class TestMainHappyPath:
             ('20240115_103045',)
         )
         
+        assert mock_cur.execute.call_args_list[2] == call(
+            "INSERT INTO predict (stem, r0b) VALUES (?, 0)",
+            ('20240115_103045',)
+        )
         # Check diaObjectId inserts (3 of them)
         expected_sql = "INSERT INTO diaobjid_stems (diaObjectId, stem, timestamp) VALUES (?, ?, current_timestamp) ON CONFLICT(diaObjectId) DO UPDATE SET stem=excluded.stem"
-        assert mock_cur.execute.call_args_list[2] == call(expected_sql, ('LSSTaaaaaaa', '20240115_103045'))
-        assert mock_cur.execute.call_args_list[3] == call(expected_sql, ('LSSTbbbbbbb', '20240115_103045'))
-        assert mock_cur.execute.call_args_list[4] == call(expected_sql, ('LSSTccccccc', '20240115_103045'))
+        assert mock_cur.execute.call_args_list[3] == call(expected_sql, ('LSSTaaaaaaa', '20240115_103045'))
+        assert mock_cur.execute.call_args_list[4] == call(expected_sql, ('LSSTbbbbbbb', '20240115_103045'))
+        assert mock_cur.execute.call_args_list[5] == call(expected_sql, ('LSSTccccccc', '20240115_103045'))
         
         mock_con.commit.assert_called_once()
         mock_con.close.assert_called_once()
@@ -368,7 +372,7 @@ class TestEdgeCases:
         # This tests current behavior - as per TODO, this should probably raise an error instead
         calls = mock_cur.execute.call_args_list
         diaobjid_call = calls[2]  # Third call should be the diaObjectId insert
-        assert diaobjid_call[0][1] == ('null', '20240115_103045')
+        assert diaobjid_call[0][1] == ('20240115_103045',)
 
 
     @patch('lvra.pypeline.kafka_consumer.lasair_consumer')
