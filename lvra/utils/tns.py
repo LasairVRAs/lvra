@@ -32,7 +32,7 @@ FILTER_IDS = {
 FLUX_UNITID = 34  # nJy
 DATA_SOURCE_GROUPID = 165  # rubin
 REPORTER = "HFStevance, et al. "
- 
+
 LVRA_TNS_MARKER = {"tns_id":197854,"type": "bot", "name":"LVRA"} # From TNS bot page where I got my API key
 
 
@@ -124,8 +124,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
         return 99
 
     # 7) build dict (coerce numpy types to Python scalars)
-    tns_dict = {
-        'at_report': {
+    tns_dict ={'at_type': 1,
             'ra': {'value': float(top_row['ra'])},
             'dec': {'value': float(top_row['decl'])},
             'internal_name': {'value': f"LSST-AP-DO-{diaObjectId}"},
@@ -141,7 +140,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
                 'instrumentid': INSTRUMENTID,
             },
         }
-    }
+    
 
     return tns_dict
 
@@ -220,6 +219,7 @@ def report2TNS(diaObjectId_list,
     report_url = base + AT_REPORT_FORM
 
     header = {'User-Agent': 'tns_marker' + json.dumps(LVRA_TNS_MARKER), 'api_key': TNS_API_KEY}
+
     report_parameters = {'api_key': TNS_API_KEY, 'data': json.dumps(payload)}
 
     try:
