@@ -31,7 +31,7 @@ FILTER_IDS = {
 }
 FLUX_UNITID = 34  # nJy
 DATA_SOURCE_GROUPID = 165  # rubin
-REPORTER = "HFStevance, et al. "
+REPORTER = "H. F. Stevance (University of Oxford), R. D. Williams, G. P. Francis (University of Edinburgh), D. R. Young (Queen's University Belfast), K. W. Smith, S. J. Smartt (University of Oxford / Queen's University Belfast), A. Lawrence, T. M. Sloan (University of Edinburgh)"
  
 LVRA_TNS_MARKER = {"tns_id":197854,"type": "bot", "name":"LVRA"} # From TNS bot page where I got my API key
 
@@ -80,6 +80,28 @@ LOG_NAME = "tns_reporter"
     # but i think that optimising this part of the code will take longer and make it harder to maintain
     # without a needed speed up. 
 
+# 2026-02-27 KWS Added converter from MJD to date fraction (as required by TNS).
+def mjdToDateFraction(mjd, delimiter = '-', decimalPlaces = 5):
+   """getDateFractionMJD.
+
+   Args:
+        mjd:
+        delimiter:
+        decimalPlaces:
+   """
+
+   from datetime import datetime
+
+   floatWidth = decimalPlaces + 3 # always have 00.00 or 00.000 or 00.0000, etc
+   unixtime = (mjd + 2400000.5 - 2440587.5) * 86400.0;
+   theDate = datetime.utcfromtimestamp(unixtime)
+   dateString = theDate.strftime("%Y:%m:%d:%H:%M:%S")
+   (year, month, day, hour, min, sec) = dateString.split(':')
+   dayFraction = int(day) + int(hour)/24.0 + int(min)/(24.0 * 60.0) + int(sec)/(24.0 * 60.0 * 60.0)
+   dateFraction = "%s%s%s%s%0*.*f" % (year, delimiter, month, delimiter, floatWidth, decimalPlaces, dayFraction)
+   return dateFraction
+
+
 def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
     # 1) get latest stem from provenance
     _sql = "SELECT stem FROM provenance WHERE diaObjectId = ? ORDER BY timestamp DESC LIMIT 1"
@@ -126,19 +148,22 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
     # 7) build dict (coerce numpy types to Python scalars)
     tns_dict = {
         'at_report': {
-            'ra': {'value': float(top_row['ra'])},
-            'dec': {'value': float(top_row['decl'])},
+            'ra': {'value': str(float(top_row['ra']))},
+            'dec': {'value': str(float(top_row['decl']))},
             'internal_name': {'value': f"LSST-AP-DO-{diaObjectId}"},
             'reporting_group_id': str(REPORTING_GROUP_ID),
+            "discovery_datetime": mjdToDateFraction(float(top_row['lastDiaSourceMjdTai']))
             'reporter': REPORTER,
-            'data_source_group_id': str(DATA_SOURCE_GROUPID),
-            'non_detection': {'archiveid': 0},
+            'discovery_data_source_id': str(DATA_SOURCE_GROUPID),
+            'non_detection': {'archiveid': "2"},   # 2 = DSS
             'photometry': {
-                'obsdate': float(top_row['lastDiaSourceMjdTai']),
-                'flux': float(top_row['psfFlux']),
-                'flux_unitid': FLUX_UNITID,
-                'filterid': FILTERID,
-                'instrumentid': INSTRUMENTID,
+                '0': {
+                'obsdate': mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
+                'flux': str(float(top_row['psfFlux'])),
+                'flux_units': str(FLUX_UNITID),
+                'filter_value': str(FILTERID),
+                'instrument_value': str(INSTRUMENTID),
+                }
             },
         }
     }
