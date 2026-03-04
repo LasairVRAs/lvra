@@ -56,6 +56,7 @@ mag_to_njy_thresholds = {'23': 2_291,
 def flux_threshold_features(df_lc, threshold_njy):
     """lc_df must at least contain the columns psfFlux and midpointMjdTai"""
 
+    # TODO: ADD CONDITION ON SNR OR RELIABILITY SCORE SO DON'T COUNT THE SHIT ONES
     n_above = (df_lc['psfFlux']>threshold_njy).sum()
     is_above_flag = None
     first_time_flag = None
