@@ -31,7 +31,7 @@ FILTER_IDS = {
 }
 FLUX_UNITID = 34  # nJy
 DATA_SOURCE_GROUPID = 165  # rubin
-REPORTER = "H. F. Stevance (University of Oxford), R. D. Williams, G. P. Francis (University of Edinburgh), D. R. Young (Queen's University Belfast), K. W. Smith, S. J. Smartt (University of Oxford / Queen's University Belfast), A. Lawrence, T. M. Sloan (University of Edinburgh)"
+REPORTER = "H. F. Stevance, K. W. Smith, S. J. Smartt (Oxford/QUB), R. D. Williams, G. P. Francis (Edinburgh), D. R. Young (QUB),  A. Lawrence, T. M. Sloan (Edinburgh)"
  
 LVRA_TNS_MARKER = {"tns_id":197854,"type": "bot", "name":"LVRA"} # From TNS bot page where I got my API key
 
@@ -147,7 +147,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
 
     # 7) build dict (coerce numpy types to Python scalars)
     tns_dict = {
-        'at_report': {
+        'at_type': "1",  
             'ra': {'value': str(float(top_row['ra']))},
             'dec': {'value': str(float(top_row['decl']))},
             'internal_name': {'value': f"LSST-AP-DO-{diaObjectId}"},
@@ -164,7 +164,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
                 'filter_value': str(FILTERID),
                 'instrument_value': str(INSTRUMENTID),
                 }
-            },
+            
         }
     }
 
@@ -180,7 +180,8 @@ def report2TNS(diaObjectId_list,
                dry_run = False,
                sandbox = True,
                  ):
-    
+    # TODO: check that close_conn thingy
+    close_conn=False
     if logger is None:
         logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 
@@ -224,7 +225,13 @@ def report2TNS(diaObjectId_list,
 
     # Build top-level payload. Historically you constructed a single dict;
     # for bulk reports we'll send the list under a wrapper to match earlier usage.
-    payload = {'reports': reports} if len(reports) != 1 else reports[0]
+    #payload = {'reports': reports} if len(reports) != 1 else reports[0]
+
+    sub_payload={}
+    for i, rep in enumerate(reports):
+        sub_payload[str(i)] = rep
+
+    payload = {'at_report': sub_payload}
 
     summary = {
         'n_requested': len(diaObjectId_list),
