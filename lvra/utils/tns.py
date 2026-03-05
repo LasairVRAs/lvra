@@ -93,7 +93,7 @@ def mjdToDateFraction(mjd, delimiter = '-', decimalPlaces = 5):
    from datetime import datetime
 
    floatWidth = decimalPlaces + 3 # always have 00.00 or 00.000 or 00.0000, etc
-   unixtime = (mjd + 2400000.5 - 2440587.5) * 86400.0;
+   unixtime = (mjd + 2400000.5 - 2440587.5) * 86400.0
    theDate = datetime.utcfromtimestamp(unixtime)
    dateString = theDate.strftime("%Y:%m:%d:%H:%M:%S")
    (year, month, day, hour, min, sec) = dateString.split(':')
@@ -152,7 +152,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
             'dec': {'value': str(float(top_row['decl']))},
             'internal_name': {'value': f"LSST-AP-DO-{diaObjectId}"},
             'reporting_group_id': str(REPORTING_GROUP_ID),
-            "discovery_datetime": mjdToDateFraction(float(top_row['lastDiaSourceMjdTai']))
+            "discovery_datetime": mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
             'reporter': REPORTER,
             'discovery_data_source_id': str(DATA_SOURCE_GROUPID),
             'non_detection': {'archiveid': "2"},   # 2 = DSS
