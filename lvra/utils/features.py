@@ -53,31 +53,80 @@ mag_to_njy_thresholds = {'23': 2_291,
                          '17': 574_340,
                          }
 
-def flux_threshold_features(df_lc, threshold_njy):
-    """lc_df must at least contain the columns psfFlux and midpointMjdTai"""
+def lc_features(df_lc, first_mjd, last_mjd, loop_index, R_THRESHOLD = 0.5):
+    n_loR_sources = sum(df_lc.reliability<R_THRESHOLD)
+    n_hiR_sources = sum(df_lc.reliability>R_THRESHOLD)
+    medianR_last5 = np.nanmedian(df_lc.sort_values('midpointMjdTai', ascending=False).iloc[:5].reliability)
+    GOOD_lc = df_lc[df_lc.reliability>R_THRESHOLD]
 
-    # TODO: ADD CONDITION ON SNR OR RELIABILITY SCORE SO DON'T COUNT THE SHIT ONES
-    n_above = (df_lc['psfFlux']>threshold_njy).sum()
-    is_above_flag = None
-    first_time_flag = None
+    ra_std = np.nanstd(GOOD_lc.ra)
+    dec_std = np.nanstd(GOOD_lc.decl)
+    
+    delta_days_TOTAL = int(last_mjd - first_mjd)
+    max_mjd, max_flux = GOOD_lc[GOOD_lc.psfFlux == GOOD_lc.psfFlux.max()][['midpointMjdTai', 'psfFlux']].values[0]
+    delta_days_SINCE_MAX = int(last_mjd-max_mjd)
+    delta_days_TO_MAX = int(max_mjd-first_mjd)
 
-    if n_above ==1 and np.isclose(df_lc[df_lc['psfFlux']>threshold_njy].midpointMjdTai.max(), 
-                                                                   df_lc.midpointMjdTai.max()):
-        # This is the first time this alert passed the threshold
-        is_above_flag = True
-        first_time_flag = True
-    elif n_above >= 1:
-        # Not the first alert above threshold
-        # Or one alert only passes the threshold but it was an older one
-        is_above_flag = True
-        first_time_flag = False
-    elif n_above == 0:
-        # No alert above threshold
-        is_above_flag = False
-        first_time_flag = False
+    n_gt22 = sum(GOOD_lc.psfFlux>mag_to_njy_thresholds['22'])
+    n_gt21 = sum(GOOD_lc.psfFlux>mag_to_njy_thresholds['21'])
+    n_gt20 = sum(GOOD_lc.psfFlux>mag_to_njy_thresholds['20'])
+    n_gt19 = sum(GOOD_lc.psfFlux>mag_to_njy_thresholds['19'])
+    n_gt18 = sum(GOOD_lc.psfFlux>mag_to_njy_thresholds['18'])
 
+    first22 = np.isclose(GOOD_lc[GOOD_lc.psfFlux>mag_to_njy_thresholds['22']].midpointMjdTai.max(),
+                         last_mjd )
+    first21 = np.isclose(GOOD_lc[GOOD_lc.psfFlux>mag_to_njy_thresholds['21']].midpointMjdTai.max(),
+                         last_mjd )
+    first20 = np.isclose(GOOD_lc[GOOD_lc.psfFlux>mag_to_njy_thresholds['20']].midpointMjdTai.max(),
+                         last_mjd )
+    first19 = np.isclose(GOOD_lc[GOOD_lc.psfFlux>mag_to_njy_thresholds['19']].midpointMjdTai.max(),
+                         last_mjd )
+    first18 = np.isclose(GOOD_lc[GOOD_lc.psfFlux>mag_to_njy_thresholds['18']].midpointMjdTai.max(),
+                         last_mjd )
 
-    return is_above_flag, first_time_flag, int(n_above)
+    df = pd.DataFrame(np.atleast_2d([n_loR_sources,
+                                     n_hiR_sources,
+                                     medianR_last5,
+                                     ra_std,
+                                     dec_std,
+                                     max_flux,
+                                     delta_days_SINCE_MAX,
+                                     delta_days_TO_MAX,
+                                     delta_days_TOTAL,
+                                     n_gt22,
+                                     n_gt21,
+                                     n_gt20,
+                                     n_gt19,
+                                     n_gt18,
+                                     first22,
+                                     first21,
+                                     first20,
+                                     first19,
+                                     first18
+                                    ]), 
+                      columns=['n_loR_sources',
+                               'n_hiR_sources',
+                               'medianR_last5',
+                               'ra_std',
+                               'dec_std',
+                               'max_flux',
+                               'delta_days_SINCE_MAX',
+                               'delta_days_TO_MAX',
+                               'delta_days_TOTAL',
+                               'n_gt22',
+                               'n_gt21',
+                               'n_gt20',
+                               'n_gt19',
+                               'n_gt18',
+                               'first22',
+                               'first21',
+                               'first20',
+                               'first19',
+                               'first18'
+                              ],
+                      index=[loop_index])
+
+    return df
 
 
 def json2cleandf(path: Path):
@@ -111,30 +160,28 @@ def json2cleandf(path: Path):
 
     latestSourceId_dfList = []
     objectIds_withoutAlert_col = []
-    above_threshold_features_22 = [] # each item a tuple: is_above_flag, first_time_flag, n_above
-    above_threshold_features_21 = []
-    above_threshold_features_20 = []
-    above_threshold_features_19 = []
-    above_threshold_features_18 = []
-
-    loop_index = 0  # INDEX FUCKERY IN HERE I HAVE TO KEEP TRACK, SEE EXPLANATION AT TOP OF FILE
+    
+    lc_features_dfList = []
+    
+    loop_index = 0
+    
     for i in range(json_df.shape[0]):
         try: 
             latestSourceId_dfList.append(pd.DataFrame(json_df['alert'].values[i]['diaSourcesList'][-1], 
                                                 index=[loop_index]))
             
             __lc = pd.DataFrame(json_df['alert'].values[i]['diaSourcesList'])
-
-            above_threshold_features_22.append([loop_index]+ list(flux_threshold_features(__lc, 
-                                                                    threshold_njy=mag_to_njy_thresholds['22'])))
-            above_threshold_features_21.append([loop_index]+ list(flux_threshold_features(__lc, 
-                                                                    threshold_njy=mag_to_njy_thresholds['21'])))
-            above_threshold_features_20.append([loop_index]+ list(flux_threshold_features(__lc, 
-                                                                    threshold_njy=mag_to_njy_thresholds['20'])))
-            above_threshold_features_19.append([loop_index]+ list(flux_threshold_features(__lc, 
-                                                                    threshold_njy=mag_to_njy_thresholds['19'])))
-            above_threshold_features_18.append([loop_index]+ list(flux_threshold_features(__lc, 
-                                                                    threshold_njy=mag_to_njy_thresholds['18'])))
+            __first_mjd = json_df.iloc[i].firstDiaSourceMjdTai
+            __last_mjd = json_df.iloc[i].lastDiaSourceMjdTai
+    
+            lc_features_dfList.append(lc_features(__lc, 
+                                                  first_mjd=__first_mjd, 
+                                                  last_mjd=__last_mjd, 
+                                                  loop_index=i, 
+                                                  R_THRESHOLD = 0.5
+                                                 )
+                                     )
+            
             loop_index += 1
         except TypeError:
             loop_index += 1 # YES THIS IS CORRECT DO NOT REMOVE - see dev notes for explanation
@@ -142,35 +189,30 @@ def json2cleandf(path: Path):
             # if that happens, we have a problem and we need to log it
             objectIds_withoutAlert_col.append(json_df['diaObjectId'].values[i])
 
-
-    # 3. Concatenate and set the index
+    # 3. Concatenate the source ID and LC feature dataframes
     latestSourceIds_df = pd.concat(latestSourceId_dfList)
+    latestSourceIds_df.diaSourceId = latestSourceIds_df.diaSourceId.astype(str)
+    latestSourceIds_df.diaObjectId = latestSourceIds_df.diaObjectId.astype(str)
+
+    lc_features_df = pd.concat(lc_features_dfList)
+
 
     # 4. Make the filter output df
     #    Take all rows (axis=0), and every column (axis=1) except the last one ('alert')
     filterOutput_df = json_df.iloc[:,:-1]
+    filterOutput_df.diaObjectId = filterOutput_df.diaObjectId.astype(str)
 
-    # 5. Join our Lasair filter features to the lates diaSourceId features
-    clean_df = latestSourceIds_df.join(filterOutput_df, lsuffix='_sourceId')
+    # 5. Join the data frames!
+    clean_df = filterOutput_df.join(latestSourceIds_df, rsuffix='_sourceId').join(lc_features_df, rsuffix='_lcfeats')
+
+    # If there were missing alert fields some latestSourceId and lc_features columns will be NaN
+    # here we remove them
+    clean_df = clean_df[~clean_df.diaObjectId_sourceId.isna()]
 
     # 5.5 CHECK THAT I DIDN'T FUCK UP INDEXES
     if sum(~(clean_df.diaObjectId == clean_df.diaObjectId_sourceId)) > 0:
         raise ValueError("The diaObjectId from the filter output and the diaObjectId from the latest diaSourceId do not match for some rows. This should never happen, check your code.")
 
-    # 6. Make the magnitude threshold flag feature dataframes
-    #    The thresholds are for 22nd, 21st, 20th, 19th and 18th mag
-    flags_22 = pd.DataFrame(above_threshold_features_22, columns=['index', 'is_above_22', 'first_time_22', 'N_above_22']).drop_duplicates()
-    flags_21 = pd.DataFrame(above_threshold_features_21, columns=['index', 'is_above_21', 'first_time_21', 'N_above_21']).drop_duplicates()
-    flags_20 = pd.DataFrame(above_threshold_features_20, columns=['index', 'is_above_20', 'first_time_20', 'N_above_20']).drop_duplicates()
-    flags_19 = pd.DataFrame(above_threshold_features_19, columns=['index', 'is_above_19', 'first_time_19', 'N_above_19']).drop_duplicates()
-    flags_18 = pd.DataFrame(above_threshold_features_18, columns=['index', 'is_above_18', 'first_time_18', 'N_above_18']).drop_duplicates()
 
-    # 7. Join the flags to the clean_df
-    clean_final = clean_df.join([flags_22.set_index('index'), 
-                                flags_21.set_index('index'),
-                                flags_20.set_index('index'),
-                                flags_19.set_index('index'),
-                                flags_18.set_index('index'),
-                                ])
 
-    return clean_final.reset_index(), objectIds_withoutAlert_col
+    return clean_df.reset_index(drop=True), objectIds_withoutAlert_col
