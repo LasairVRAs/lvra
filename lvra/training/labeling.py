@@ -141,6 +141,7 @@ def interactive_labeling(
             "a": "agn",
             "b": "bogus",
             "v": "varstar",
+            "m": "mover",
         }
 
     print(allowed_labels)
