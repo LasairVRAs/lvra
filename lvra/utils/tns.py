@@ -150,7 +150,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
         'at_report': {
             'ra': {'value': str(float(top_row['ra']))},
             'dec': {'value': str(float(top_row['decl']))},
-            'internal_name': {'value': f"LSST-AP-DO-{diaObjectId}"},
+            'internal_name': f"LSST-AP-DO-{diaObjectId}",
             'reporting_group_id': str(REPORTING_GROUP_ID),
             "discovery_datetime": mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
             'reporter': REPORTER,
