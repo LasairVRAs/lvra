@@ -29,7 +29,8 @@ FILTER_IDS = {
     'z': 164,
     'y': 165
 }
-FLUX_UNITID = 34  # nJy
+#FLUX_UNITID = 34  # nJy
+FLUX_UNITID = 1  # AB Mag. The TNS can't currently cope with nJy even though it recognises the units.
 DATA_SOURCE_GROUPID = 165  # rubin
 REPORTER = "H. F. Stevance (University of Oxford), R. D. Williams, G. P. Francis (University of Edinburgh), D. R. Young (Queen's University Belfast), K. W. Smith, S. J. Smartt (University of Oxford / Queen's University Belfast), A. Lawrence, T. M. Sloan (University of Edinburgh)"
  
@@ -102,6 +103,14 @@ def mjdToDateFraction(mjd, delimiter = '-', decimalPlaces = 5):
    return dateFraction
 
 
+# 2026-02-27 KWS Added converter for flux, since TNS can't cope with anything other than mags.
+#                TODO: We need to sanity check the value. If the flux is negative, this will
+#                      raise an exception which we are not trapping at the moment. We should
+#                      probably walk the lightcurve points until we get the first positive flux.
+def nanoJanskyToABMag(flux):
+    mag = -2.5 * math.log10(flux) + 31.4
+    return mag
+
 def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
     # 1) get latest stem from provenance
     _sql = "SELECT stem FROM provenance WHERE diaObjectId = ? ORDER BY timestamp DESC LIMIT 1"
@@ -159,7 +168,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
             'photometry': {
                 '0': {
                 'obsdate': mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
-                'flux': str(float(top_row['psfFlux'])),
+                'flux': str(nanoJanskyToABMag(float(top_row['psfFlux']))),
                 'flux_units': str(FLUX_UNITID),
                 'filter_value': str(FILTERID),
                 'instrument_value': str(INSTRUMENTID),
