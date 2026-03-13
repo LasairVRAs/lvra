@@ -131,7 +131,8 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
         return 21  # match your existing code for input file missing
 
     # 3) check required columns exist
-    required_cols = {'diaObjectId', 'lastDiaSourceMjdTai', 'psfFlux', 'band', 'ra', 'decl'}
+    # 2026-03-13 KWS Added psfFluxErr even though it's not technically required.
+    required_cols = {'diaObjectId', 'lastDiaSourceMjdTai', 'psfFlux', 'psfFluxErr', 'band', 'ra', 'decl'}
     if not required_cols.issubset(set(df.columns)):
         logger.error(f"Missing required columns in {path}. Required: {required_cols}")
         return 96  # missing columns
@@ -169,6 +170,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
                 '0': {
                 'obsdate': mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
                 'flux': str(nanoJanskyToABMag(float(top_row['psfFlux']))),
+                'flux_error': str(nanoJanskyToABMag(float(top_row['psfFluxErr']))),
                 'flux_units': str(FLUX_UNITID),
                 'filter_value': str(FILTERID),
                 'instrument_value': str(INSTRUMENTID),
