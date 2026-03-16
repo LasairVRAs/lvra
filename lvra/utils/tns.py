@@ -110,11 +110,11 @@ def mjdToDateFraction(mjd, delimiter = '-', decimalPlaces = 5):
 #                      raise an exception which we are not trapping at the moment. We should
 #                      probably walk the lightcurve points until we get the first positive flux.
 def nanoJanskyToABMag(flux):
-    mag = -2.5 * np.log10(flux) + 31.4
-    return mag
+    mag = -2.5 * np.log10(abs(flux)) + 31.4
+    return round(mag,3)
 
 def nanoJanskyErrToABMagErr(flux, flux_err):
-    return 1.08574 * (flux_err / flux)
+    return round(1.08574 * (abs(flux_err / flux)), 3)
 
 def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
     # 1) get latest stem from provenance
