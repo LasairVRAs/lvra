@@ -89,8 +89,8 @@ fi
 exec 9>&- # close fd 9
 
 # .........  SLEEP ......... #
-echo "$(date -Iseconds) [LVRA PIPELINE] zzzzzz Sleep 15 zzzzzzz ">> "$LOGFILE"
-sleep 15
+#echo "$(date -Iseconds) [LVRA PIPELINE] zzzzzz Sleep 15 zzzzzzz ">> "$LOGFILE"
+#sleep 15
 
 # ------ r0b FEATURE MAKING ------- #
 #  (fd 10)
@@ -113,8 +113,8 @@ fi
 exec 10>&-
 
 # .........  SLEEP ......... #
-echo "$(date -Iseconds) [LVRA PIPELINE] zzzzzz Sleep 20 zzzzzzz ">> "$LOGFILE"
-sleep 20
+#echo "$(date -Iseconds) [LVRA PIPELINE] zzzzzz Sleep 20 zzzzzzz ">> "$LOGFILE"
+#sleep 20
 
 # ------ PREDICTIONS ------- #
 # (fd 11)
@@ -137,8 +137,8 @@ fi
 exec 11>&-
 
 # .........  SLEEP ......... #
-echo "$(date -Iseconds) [LVRA PIPELINE] zzzzzz Sleep 10 zzzzzzz ">> "$LOGFILE"
-sleep 10
+#echo "$(date -Iseconds) [LVRA PIPELINE] zzzzzz Sleep 10 zzzzzzz ">> "$LOGFILE"
+#sleep 10
 
 # ------ ANNOTATIONS ------- #
 # (fd 12)
