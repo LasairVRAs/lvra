@@ -11,6 +11,7 @@ from lvra.utils.misc import set_up
 #  CONSTANTS  #
 # #-#-#-#-#-# #
 
+# TODO: allow command line arguement to define N messages
 N_MESSAGES = 10_000 # number of messages to poll for 
 
 env_settings = os.environ.get("LVRA_SETTINGS")
