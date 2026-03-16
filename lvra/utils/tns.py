@@ -29,7 +29,8 @@ FILTER_IDS = {
     'z': 164,
     'y': 165
 }
-FLUX_UNITID = 34  # nJy
+#FLUX_UNITID = 34  # nJy
+FLUX_UNITID = 1  # AB Mag. The TNS can't currently cope with nJy even though it recognises the units.
 DATA_SOURCE_GROUPID = 165  # rubin
 REPORTER = "H. F. Stevance, K. W. Smith, S. J. Smartt (Oxford/QUB), R. D. Williams, G. P. Francis (Edinburgh), D. R. Young (QUB),  A. Lawrence, T. M. Sloan (Edinburgh)"
  
@@ -102,6 +103,14 @@ def mjdToDateFraction(mjd, delimiter = '-', decimalPlaces = 5):
    return dateFraction
 
 
+# 2026-02-27 KWS Added converter for flux, since TNS can't cope with anything other than mags.
+#                TODO: We need to sanity check the value. If the flux is negative, this will
+#                      raise an exception which we are not trapping at the moment. We should
+#                      probably walk the lightcurve points until we get the first positive flux.
+def nanoJanskyToABMag(flux):
+    mag = -2.5 * math.log10(flux) + 31.4
+    return mag
+
 def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
     # 1) get latest stem from provenance
     _sql = "SELECT stem FROM provenance WHERE diaObjectId = ? ORDER BY timestamp DESC LIMIT 1"
@@ -122,7 +131,8 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
         return 21  # match your existing code for input file missing
 
     # 3) check required columns exist
-    required_cols = {'diaObjectId', 'lastDiaSourceMjdTai', 'psfFlux', 'band', 'ra', 'decl'}
+    # 2026-03-13 KWS Added psfFluxErr even though it's not technically required.
+    required_cols = {'diaObjectId', 'lastDiaSourceMjdTai', 'psfFlux', 'psfFluxErr', 'band', 'ra', 'decl'}
     if not required_cols.issubset(set(df.columns)):
         logger.error(f"Missing required columns in {path}. Required: {required_cols}")
         return 96  # missing columns
@@ -150,7 +160,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
         'at_type': "1",  
             'ra': {'value': str(float(top_row['ra']))},
             'dec': {'value': str(float(top_row['decl']))},
-            'internal_name': {'value': f"LSST-AP-DO-{diaObjectId}"},
+            'internal_name': f"LSST-AP-DO-{diaObjectId}",
             'reporting_group_id': str(REPORTING_GROUP_ID),
             "discovery_datetime": mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
             'reporter': REPORTER,
@@ -159,7 +169,8 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
             'photometry': {
                 '0': {
                 'obsdate': mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
-                'flux': str(float(top_row['psfFlux'])),
+                'flux': str(nanoJanskyToABMag(float(top_row['psfFlux']))),
+                'flux_error': str(nanoJanskyToABMag(float(top_row['psfFluxErr']))),
                 'flux_units': str(FLUX_UNITID),
                 'filter_value': str(FILTERID),
                 'instrument_value': str(INSTRUMENTID),
