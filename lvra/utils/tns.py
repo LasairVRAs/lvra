@@ -8,14 +8,16 @@ import requests
 import pandas as pd
 from lvra.utils.misc import set_up
 import sqlite3
-
-
+import numpy as np
+import time
 # #-#-#-#-#-# #
 #  CONSTANTS  #
 # #-#-#-#-#-# #
 
 
 AT_REPORT_FORM = "set/bulk-report"
+AT_REPORT_REPLY = "get/bulk-report-reply"
+
 TNS_BASE_URL = "https://www.wis-tns.org/api/" # TODO: check this may be wrong
 TNS_BASE_URL_SANDBOX = "https://sandbox.wis-tns.org/api/"
 
@@ -29,9 +31,10 @@ FILTER_IDS = {
     'z': 164,
     'y': 165
 }
-FLUX_UNITID = 34  # nJy
+#FLUX_UNITID = 34  # nJy
+FLUX_UNITID = 1  # AB Mag. The TNS can't currently cope with nJy even though it recognises the units.
 DATA_SOURCE_GROUPID = 165  # rubin
-REPORTER = "HFStevance, et al. "
+REPORTER = "H. F. Stevance, K. W. Smith, S. J. Smartt (Oxford/QUB), R. D. Williams, G. P. Francis (Edinburgh), D. R. Young (QUB),  A. Lawrence, T. M. Sloan (Edinburgh)"
  
 LVRA_TNS_MARKER = {"tns_id":197854,"type": "bot", "name":"LVRA"} # From TNS bot page where I got my API key
 
@@ -80,6 +83,39 @@ LOG_NAME = "tns_reporter"
     # but i think that optimising this part of the code will take longer and make it harder to maintain
     # without a needed speed up. 
 
+# 2026-02-27 KWS Added converter from MJD to date fraction (as required by TNS).
+def mjdToDateFraction(mjd, delimiter = '-', decimalPlaces = 5):
+   """getDateFractionMJD.
+
+   Args:
+        mjd:
+        delimiter:
+        decimalPlaces:
+   """
+
+   from datetime import datetime
+
+   floatWidth = decimalPlaces + 3 # always have 00.00 or 00.000 or 00.0000, etc
+   unixtime = (mjd + 2400000.5 - 2440587.5) * 86400.0
+   theDate = datetime.utcfromtimestamp(unixtime)
+   dateString = theDate.strftime("%Y:%m:%d:%H:%M:%S")
+   (year, month, day, hour, min, sec) = dateString.split(':')
+   dayFraction = int(day) + int(hour)/24.0 + int(min)/(24.0 * 60.0) + int(sec)/(24.0 * 60.0 * 60.0)
+   dateFraction = "%s%s%s%s%0*.*f" % (year, delimiter, month, delimiter, floatWidth, decimalPlaces, dayFraction)
+   return dateFraction
+
+
+# 2026-02-27 KWS Added converter for flux, since TNS can't cope with anything other than mags.
+#                TODO: We need to sanity check the value. If the flux is negative, this will
+#                      raise an exception which we are not trapping at the moment. We should
+#                      probably walk the lightcurve points until we get the first positive flux.
+def nanoJanskyToABMag(flux):
+    mag = -2.5 * np.log10(abs(flux)) + 31.4
+    return mag
+
+def nanoJanskyErrToABMagErr(flux, flux_err):
+    return 1.08574 * (abs(flux_err / flux))
+
 def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
     # 1) get latest stem from provenance
     _sql = "SELECT stem FROM provenance WHERE diaObjectId = ? ORDER BY timestamp DESC LIMIT 1"
@@ -100,13 +136,14 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
         return 21  # match your existing code for input file missing
 
     # 3) check required columns exist
-    required_cols = {'diaObjectId', 'lastDiaSourceMjdTai', 'psfFlux', 'band', 'ra', 'decl'}
+    # 2026-03-13 KWS Added psfFluxErr even though it's not technically required.
+    required_cols = {'diaObjectId', 'lastDiaSourceMjdTai', 'psfFlux', 'psfFluxErr', 'band', 'ra', 'decl'}
     if not required_cols.issubset(set(df.columns)):
         logger.error(f"Missing required columns in {path}. Required: {required_cols}")
         return 96  # missing columns
 
     # 4) filter rows for this diaObjectId
-    dio_rows = df[df['diaObjectId'] == diaObjectId]
+    dio_rows = df[df['diaObjectId'].astype(str) == str(diaObjectId)]
     if dio_rows.empty:
         logger.error(f"No rows for diaObjectId={diaObjectId} in {path}")
         return 98  # no rows for this object in the CSV
@@ -125,21 +162,26 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
 
     # 7) build dict (coerce numpy types to Python scalars)
     tns_dict = {
-        'at_report': {
-            'ra': {'value': float(top_row['ra'])},
-            'dec': {'value': float(top_row['decl'])},
-            'internal_name': {'value': f"LSST-AP-DO-{diaObjectId}"},
+        'at_type': "1",  
+            'ra': {'value': str(float(top_row['ra']))},
+            'dec': {'value': str(float(top_row['decl']))},
+            'internal_name': f"LSST-AP-DO-{diaObjectId}",
             'reporting_group_id': str(REPORTING_GROUP_ID),
+            "discovery_datetime": mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
             'reporter': REPORTER,
-            'data_source_group_id': str(DATA_SOURCE_GROUPID),
-            'non_detection': {'archiveid': 0},
+            'discovery_data_source_id': str(DATA_SOURCE_GROUPID),
+            'non_detection': {'archiveid': "2"},   # 2 = DSS
             'photometry': {
-                'obsdate': float(top_row['lastDiaSourceMjdTai']),
-                'flux': float(top_row['psfFlux']),
-                'flux_unitid': FLUX_UNITID,
-                'filterid': FILTERID,
-                'instrumentid': INSTRUMENTID,
-            },
+                '0': {
+                'obsdate': mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
+                'flux': str(nanoJanskyToABMag(float(top_row['psfFlux']))),
+                'flux_error': str(nanoJanskyErrToABMagErr(float(top_row['psfFlux']), 
+                                                          float(top_row['psfFluxErr']))),
+                'flux_units': str(FLUX_UNITID),
+                'filter_value': str(FILTERID),
+                'instrument_value': str(INSTRUMENTID),
+                }
+            
         }
     }
 
@@ -155,7 +197,8 @@ def report2TNS(diaObjectId_list,
                dry_run = False,
                sandbox = True,
                  ):
-    
+    # TODO: check that close_conn thingy
+    close_conn=False
     if logger is None:
         logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 
@@ -199,7 +242,13 @@ def report2TNS(diaObjectId_list,
 
     # Build top-level payload. Historically you constructed a single dict;
     # for bulk reports we'll send the list under a wrapper to match earlier usage.
-    payload = {'reports': reports} if len(reports) != 1 else reports[0]
+    #payload = {'reports': reports} if len(reports) != 1 else reports[0]
+
+    sub_payload={}
+    for i, rep in enumerate(reports):
+        sub_payload[str(i)] = rep
+
+    payload = {'at_report': sub_payload}
 
     summary = {
         'n_requested': len(diaObjectId_list),
@@ -220,6 +269,7 @@ def report2TNS(diaObjectId_list,
     report_url = base + AT_REPORT_FORM
 
     header = {'User-Agent': 'tns_marker' + json.dumps(LVRA_TNS_MARKER), 'api_key': TNS_API_KEY}
+
     report_parameters = {'api_key': TNS_API_KEY, 'data': json.dumps(payload)}
 
     try:
@@ -239,6 +289,46 @@ def report2TNS(diaObjectId_list,
 
     
     return summary
+
+def get_tns_reply(report_id, 
+                  tns_api_key = None, 
+                  logger = None, 
+                  sandbox = True):
+    
+    """
+    Get TNS reply (mostly for the TNS name) form a given report id.
+
+    To Run
+    -------
+
+    import lvra.utils.tns as ltns
+
+    [...]
+    reply = ltns.get_tns_reply(report_id, logger = None, sandbox = True)
+    tns_name = reply.json()['data']['feedback']['at_report'][0]['101']['objname']
+    """
+    if logger is None:
+        logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+
+    api_key = tns_api_key if tns_api_key is not None else TNS_API_KEY
+    if api_key is None:
+        logger.error("TNS API key not given as argument nor found in environment variable LVRA_TNS_API_KEY")
+        return 99
+
+    base = TNS_BASE_URL_SANDBOX if sandbox else TNS_BASE_URL
+    reply_url = base + AT_REPORT_REPLY
+
+    header = {'User-Agent': 'tns_marker' + json.dumps(LVRA_TNS_MARKER)}
+    data = {'api_key': api_key, 'report_id': report_id}
+
+    try:
+        r = requests.post(reply_url, data=data, timeout=300, headers=header)
+        logger.info(f"TNS GET reply status: {r.status_code}")
+        return r.json() if r.status_code == 200 else None
+    except Exception as e:
+        logger.exception(f"Failed to GET TNS report reply: {e}")
+        return None
+
 
 # TODO: make function to make the TNS call to get the report from them using the report Id they give back?
 # TODO: am I even gettng this info properly above in my post rrequrest? 
@@ -262,20 +352,28 @@ def main():
     #                      SET UP                        #
     # -------------------------------------------------- #
 
-    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    #logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    logger=logging.getLogger()
     # General settings and initialisation of the logger
     setup_dict = set_up(settings_path=SETTINGS_PATH, 
                         log_name=LOG_NAME,
                         logger=logger
                         )
     
-    diaObjectId_list = [169760231711572844, 169760231408535266] # expected to exist in repo test CSV
+    #diaObjectId_list = [169760231711572844, 169760231408535266] # expected to exist in repo test CSV
+    #diaObjectId_list=['313871013236965412']
+    diaObjectId_list=['170028500600750248']
     summary = report2TNS(diaObjectId_list, 
                          setup_dict = setup_dict, 
                          logger = logger, 
                          dry_run = False, 
                          sandbox = True )
     print(summary)
+
+    report_id = str(json.loads(summary['response_text'])['data']['report_id'])
+    print(report_id)
+    time.sleep(2)
+    get_tns_reply(report_id, tns_api_key=TNS_API_KEY, logger=logger, sandbox=True)
     return 0 
 
 """
