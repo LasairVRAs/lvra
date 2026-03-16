@@ -16,6 +16,8 @@ import numpy as np
 
 
 AT_REPORT_FORM = "set/bulk-report"
+AT_REPORT_REPLY = "get/bulk-report-reply"
+
 TNS_BASE_URL = "https://www.wis-tns.org/api/" # TODO: check this may be wrong
 TNS_BASE_URL_SANDBOX = "https://sandbox.wis-tns.org/api/"
 
@@ -111,6 +113,9 @@ def nanoJanskyToABMag(flux):
     mag = -2.5 * np.log10(flux) + 31.4
     return mag
 
+def nanoJanskyErrToABMagErr(flux, flux_err):
+    return 1.08574 * (flux_err / flux)
+
 def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
     # 1) get latest stem from provenance
     _sql = "SELECT stem FROM provenance WHERE diaObjectId = ? ORDER BY timestamp DESC LIMIT 1"
@@ -170,7 +175,8 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
                 '0': {
                 'obsdate': mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
                 'flux': str(nanoJanskyToABMag(float(top_row['psfFlux']))),
-                'flux_error': str(nanoJanskyToABMag(float(top_row['psfFluxErr']))),
+                'flux_error': str(nanoJanskyErrToABMagErr(float(top_row['psfFlux']), 
+                                                          float(top_row['psfFluxErr']))),
                 'flux_units': str(FLUX_UNITID),
                 'filter_value': str(FILTERID),
                 'instrument_value': str(INSTRUMENTID),
@@ -283,6 +289,46 @@ def report2TNS(diaObjectId_list,
 
     
     return summary
+
+def get_tns_reply(report_id, 
+                  tns_api_key = None, 
+                  logger = None, 
+                  sandbox = True):
+    
+    """
+    Get TNS reply (mostly for the TNS name) form a given report id.
+
+    To Run
+    -------
+
+    import lvra.utils.tns as ltns
+
+    [...]
+    reply = ltns.get_tns_reply(report_id, logger = None, sandbox = True)
+    tns_name = reply.json()['data']['feedback']['at_report'][0]['101']['objname']
+    """
+    if logger is None:
+        logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+
+    api_key = tns_api_key if tns_api_key is not None else TNS_API_KEY
+    if api_key is None:
+        logger.error("TNS API key not given as argument nor found in environment variable LVRA_TNS_API_KEY")
+        return 99
+
+    base = TNS_BASE_URL_SANDBOX if sandbox else TNS_BASE_URL
+    reply_url = base + AT_REPORT_REPLY
+
+    header = {'User-Agent': 'tns_marker' + json.dumps(LVRA_TNS_MARKER), 'api_key': TNS_API_KEY}
+    data = {'api_key': api_key, 'report_id': report_id}
+
+    try:
+        r = requests.post(reply_url, params=data, timeout=300, headers=header)
+        logger.info(f"TNS GET reply status: {r.status_code}")
+        return r.json() if r.status_code == 200 else None
+    except Exception as e:
+        logger.exception(f"Failed to GET TNS report reply: {e}")
+        return None
+
 
 # TODO: make function to make the TNS call to get the report from them using the report Id they give back?
 # TODO: am I even gettng this info properly above in my post rrequrest? 
