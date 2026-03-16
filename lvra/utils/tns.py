@@ -9,7 +9,7 @@ import pandas as pd
 from lvra.utils.misc import set_up
 import sqlite3
 import numpy as np
-
+import time
 # #-#-#-#-#-# #
 #  CONSTANTS  #
 # #-#-#-#-#-# #
@@ -111,10 +111,10 @@ def mjdToDateFraction(mjd, delimiter = '-', decimalPlaces = 5):
 #                      probably walk the lightcurve points until we get the first positive flux.
 def nanoJanskyToABMag(flux):
     mag = -2.5 * np.log10(abs(flux)) + 31.4
-    return round(mag,3)
+    return mag
 
 def nanoJanskyErrToABMagErr(flux, flux_err):
-    return round(1.08574 * (abs(flux_err / flux)), 3)
+    return 1.08574 * (abs(flux_err / flux))
 
 def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
     # 1) get latest stem from provenance
@@ -318,11 +318,11 @@ def get_tns_reply(report_id,
     base = TNS_BASE_URL_SANDBOX if sandbox else TNS_BASE_URL
     reply_url = base + AT_REPORT_REPLY
 
-    header = {'User-Agent': 'tns_marker' + json.dumps(LVRA_TNS_MARKER), 'api_key': TNS_API_KEY}
+    header = {'User-Agent': 'tns_marker' + json.dumps(LVRA_TNS_MARKER)}
     data = {'api_key': api_key, 'report_id': report_id}
 
     try:
-        r = requests.post(reply_url, params=data, timeout=300, headers=header)
+        r = requests.post(reply_url, data=data, timeout=300, headers=header)
         logger.info(f"TNS GET reply status: {r.status_code}")
         return r.json() if r.status_code == 200 else None
     except Exception as e:
@@ -352,20 +352,28 @@ def main():
     #                      SET UP                        #
     # -------------------------------------------------- #
 
-    logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    #logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+    logger=logging.getLogger()
     # General settings and initialisation of the logger
     setup_dict = set_up(settings_path=SETTINGS_PATH, 
                         log_name=LOG_NAME,
                         logger=logger
                         )
     
-    diaObjectId_list = [169760231711572844, 169760231408535266] # expected to exist in repo test CSV
+    #diaObjectId_list = [169760231711572844, 169760231408535266] # expected to exist in repo test CSV
+    #diaObjectId_list=['313871013236965412']
+    diaObjectId_list=['170028500600750248']
     summary = report2TNS(diaObjectId_list, 
                          setup_dict = setup_dict, 
                          logger = logger, 
                          dry_run = False, 
                          sandbox = True )
     print(summary)
+
+    report_id = str(json.loads(summary['response_text'])['data']['report_id'])
+    print(report_id)
+    time.sleep(2)
+    get_tns_reply(report_id, tns_api_key=TNS_API_KEY, logger=logger, sandbox=True)
     return 0 
 
 """
