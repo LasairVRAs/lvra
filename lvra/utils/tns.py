@@ -8,7 +8,7 @@ import requests
 import pandas as pd
 from lvra.utils.misc import set_up
 import sqlite3
-
+import numpy as np
 
 # #-#-#-#-#-# #
 #  CONSTANTS  #
@@ -108,7 +108,7 @@ def mjdToDateFraction(mjd, delimiter = '-', decimalPlaces = 5):
 #                      raise an exception which we are not trapping at the moment. We should
 #                      probably walk the lightcurve points until we get the first positive flux.
 def nanoJanskyToABMag(flux):
-    mag = -2.5 * math.log10(flux) + 31.4
+    mag = -2.5 * np.log10(flux) + 31.4
     return mag
 
 def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
@@ -138,7 +138,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
         return 96  # missing columns
 
     # 4) filter rows for this diaObjectId
-    dio_rows = df[df['diaObjectId'] == diaObjectId]
+    dio_rows = df[df['diaObjectId'].astype(str) == str(diaObjectId)]
     if dio_rows.empty:
         logger.error(f"No rows for diaObjectId={diaObjectId} in {path}")
         return 98  # no rows for this object in the CSV
