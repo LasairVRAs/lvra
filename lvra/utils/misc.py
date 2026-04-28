@@ -11,8 +11,7 @@ def set_up(settings_path: Path,
            log_name: str,
            logger
           ):
-    """Creates the set_up dictionary. Takes base dir from envrionment PREFERENTIALLY, if not 
-    exist then takes it form the config file.
+    """Creates the set_up dictionary. Takes base dir from the config file NOT FROM ENVIRONMENT ANYMORE 
     
     Parameters
     ----------    
@@ -40,14 +39,10 @@ def set_up(settings_path: Path,
     current_day = datetime.utcnow().strftime("%Y%m%d")
     sub_dir = Path(current_year) / Path(current_day)
     
-    base_dir_path = os.environ.get("LVRA_DATA_ROOT")
 
     with settings_path.open("r") as settings:
         config = yaml.safe_load(settings)
-        if base_dir_path:                                 # from environment variable
-            base_dir = Path(base_dir_path)
-        else:                                            # or go to default file
-            base_dir = Path(config['base_dir'])
+        base_dir = Path(config['base_dir'])
 
 
         setup_dict = {'kafka_server': config['kafka_server'],                  # URL of the server

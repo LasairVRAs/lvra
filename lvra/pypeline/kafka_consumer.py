@@ -11,8 +11,8 @@ from lvra.utils.misc import set_up
 #  CONSTANTS  #
 # #-#-#-#-#-# #
 
-N_MESSAGES = 10_000 # number of messages to poll for 
-
+#N_MESSAGES = 10_000 # number of messages to poll for 
+N_MESSAGES = 10
 env_settings = os.environ.get("LVRA_SETTINGS")
 if env_settings:                                 # from environment variable
     SETTINGS_PATH= Path(env_settings)
