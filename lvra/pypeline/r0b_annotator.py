@@ -23,7 +23,7 @@ else:                                            # or go to default file
     SETTINGS_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "public_settings.yaml"
 
 LOG_NAME = "r0b_annotator.log"
-# TODO: this shouldn't be hard coded - it's a pain for dev. I need to find a better way, maybe allow taking it form cli
+# LASAIR_TOKEN environment variable is set by the bash wrapper (from .bashrc or command line argument)
 LASAIR_TOKEN = os.getenv("LASAIR_TOKEN")
 MODEL_CONFIG_FILE = "r0b_config.yaml"
 
@@ -34,7 +34,7 @@ MODEL_CONFIG_FILE = "r0b_config.yaml"
        
 
 def get_pending_annotations(sqlite_cursor,  model_name, model_version, logger, ):
-    """Join annotating and provenance tbales to find the 
+    """Join annotating and provenance tables to find the 
     pending annotations for a given model name and version
     """
     _sql="select p.ID, p.diaObjectId, p.diaSourceId, p.stem, p.score, p.model_name, p.model_version "\
