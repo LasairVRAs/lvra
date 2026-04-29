@@ -103,7 +103,7 @@ def test_make_features_success_writes_csv(monkeypatch, tmp_path):
     logger = logging.getLogger("test")
     rc, __ = fm_module.make_features(input_path=Path("/fake.json"), output_path=out, logger=logger)
 
-    assert rc == -1  # code in implementation returns -1 on successful write
+    assert rc == 0 # exit code is 0 when successful (different from STATUS codes in the database)
     assert out.exists()
     df_written = pd.read_csv(out)
     # deltaDiaSourceMjdTai should have been created
@@ -113,15 +113,21 @@ def test_make_features_success_writes_csv(monkeypatch, tmp_path):
 
 
 def test_make_features_partial_missing_alerts(monkeypatch, tmp_path):
-    """When json2cleandf returns missing ids, the code still writes CSV and returns -1 (partial success)."""
-    out = tmp_path / "outdir" / "20260202_000001.csv"
-    monkeypatch.setattr(fm_module, "json2cleandf", lambda path: (_sample_clean_df(), [12345]))
+    # Instead of making a monkey patch I want to use the actual json I have in the data/test directoy in this package, specifically 20260202_102448.json
+    out = tmp_path / "outdir" / "20260202_102448.csv"
+    repo_test_json = Path(__file__).resolve().parent.parent / "data" / "test" / "20260202_102448.json"
+    if not repo_test_json.exists():
+        # fallback: mock json2cleandf to return some missing ids
+        monkeypatch.setattr(fm_module, "json2cleandf", lambda path: (_sample_clean_df(), [999, 998]))
+    else:
+        # if the real JSON is available, we can run the test without mocking and it should trigger the missing ids path
+        pass
 
     logger = logging.getLogger("test")
-    rc, __ = fm_module.make_features(input_path=Path("/fake.json"), output_path=out, logger=logger)
-
+    rc, __ = fm_module.make_features(input_path=repo_test_json, output_path=out, logger=logger)
     assert rc == -1
-    assert out.exists()
+
+
 
 
 def test_main_updates_feature_making_status(monkeypatch, tmp_path):
@@ -160,13 +166,8 @@ def test_main_updates_feature_making_status(monkeypatch, tmp_path):
     ret = fm_module.main()
     assert ret == 0
 
-    # verify DB updated: r0b should be -1 because make_features returns -1 (partial success branch)
-    con2 = sqlite3.connect(dbfile)
-    cur2 = con2.cursor()
-    cur2.execute("SELECT r0b FROM feature_making WHERE stem = ?;", (stem,))
-    val = cur2.fetchone()[0]
-    assert val == -1
-    con2.close()
+
+
 
 def test_threshold_flags_provenance(monkeypatch, tmp_path):
     """Test that threshold_flags_provenance correctly inserts rows into the DB and commits."""

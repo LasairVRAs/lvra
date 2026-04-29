@@ -134,16 +134,19 @@ class TestMainHappyPath:
             ('20240115_103045',)
         )
         
-        # Check annotating insert
         assert mock_cur.execute.call_args_list[1] == call(
+            "INSERT INTO predict (stem, r0b) VALUES (?, 0)",
+            ('20240115_103045',)
+        )
+
+        # Check annotating insert
+        assert mock_cur.execute.call_args_list[2] == call(
             "INSERT INTO annotating (stem, r0b) VALUES (?, 0)",
             ('20240115_103045',)
         )
         
-        assert mock_cur.execute.call_args_list[2] == call(
-            "INSERT INTO predict (stem, r0b) VALUES (?, 0)",
-            ('20240115_103045',)
-        )
+
+
         # Check diaObjectId inserts (3 of them)
         expected_sql = "INSERT INTO diaobjid_stems (diaObjectId, stem, timestamp) VALUES (?, ?, current_timestamp) ON CONFLICT(diaObjectId) DO UPDATE SET stem=excluded.stem"
         assert mock_cur.execute.call_args_list[3] == call(expected_sql, ('LSSTaaaaaaa', '20240115_103045'))
@@ -441,6 +444,14 @@ def real_sqlite_db(tmp_path):
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    cur.execute("""
+        CREATE TABLE predict (
+            stem TEXT PRIMARY KEY,
+            r0b INTEGER, 
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     
     cur.execute("""
         CREATE TABLE annotating (
@@ -449,6 +460,8 @@ def real_sqlite_db(tmp_path):
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+
     
     cur.execute("""
         CREATE TABLE diaobjid_stems (

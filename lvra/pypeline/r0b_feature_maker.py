@@ -184,7 +184,7 @@ def make_features(input_path: Path,
         return 0, clean_df
 
     except FileNotFoundError:
-        logger.error("[MAKE_FEATURES] FAIL - reason= OUTPUT FileNotFound")
+        logger.error("[MAKE_FEATURES] FAIL - reason = OUTPUT FileNotFound")
         return 22, None
     except Exception as e:
         logger.error(f"[MAKE_FEATURES] FAIL -  reason={e}")
