@@ -54,7 +54,10 @@ mag_to_njy_thresholds = {'23': 2_291,
                          }
 
 def flux_threshold_features(df_lc, threshold_njy):
-    """lc_df must at least contain the columns psfFlux and midpointMjdTai"""
+    """lc_df must at least contain the columns psfFlux and midpointMjdTai
+    
+    CALLED BY: json2cleandf()
+    """
 
     # TODO: ADD CONDITION ON SNR OR RELIABILITY SCORE SO DON'T COUNT THE SHIT ONES
     n_above = (df_lc['psfFlux']>threshold_njy).sum()
@@ -69,6 +72,11 @@ def flux_threshold_features(df_lc, threshold_njy):
     elif n_above >= 1:
         # Not the first alert above threshold
         # Or one alert only passes the threshold but it was an older one
+        # NOTE: This flag basically says "Has it every been brighter than the threshold" not just 
+        #       "is it brighter TODAY". the reason is that in a normal Lasair filter you can ALREADY
+        #       check if something is brighter than a magnitude threshold TODAY but you CAN'T look at the 
+        #       history of the lightcurve because Lasair features are diaObjectId indexed 
+        #       (or you'de have to get the lightcurve in your laert packets and check everytime) 
         is_above_flag = True
         first_time_flag = False
     elif n_above == 0:
@@ -86,6 +94,9 @@ def json2cleandf(path: Path):
     the latest diaSourceId. 
 
     This is a cleaning step before feature csv files can be created in the pyplines.
+
+
+    USES: flux_threshold_features()
 
     Parameters
     ----------
@@ -118,6 +129,7 @@ def json2cleandf(path: Path):
     above_threshold_features_18 = []
 
     loop_index = 0  # INDEX FUCKERY IN HERE I HAVE TO KEEP TRACK, SEE EXPLANATION AT TOP OF FILE
+    # TODO: you silly goose you can just use the i index! you're incrementing whether the try function works or not!!
     for i in range(json_df.shape[0]):
         try: 
             latestSourceId_dfList.append(pd.DataFrame(json_df['alert'].values[i]['diaSourcesList'][-1], 
@@ -151,9 +163,21 @@ def json2cleandf(path: Path):
     filterOutput_df = json_df.iloc[:,:-1]
 
     # 5. Join our Lasair filter features to the lates diaSourceId features
+    #    NOTE: If you change the suffix here you will HAVE TO UPDATE THE COLUMNS_TO_EXCLUDE LIST
+    #          at the top of this file. 
     clean_df = latestSourceIds_df.join(filterOutput_df, lsuffix='_sourceId')
 
     # 5.5 CHECK THAT I DIDN'T FUCK UP INDEXES
+    #     The diaObjectId column is present both in the table of the features from the Lasair 
+    #     filter, and the table of features related to the last data point in the lightcurve
+    #     (that is the latestSourceId). If the join worked and the tow tables are lined up
+    #     the two diaObjectId columns (one with the suffix _sourcId) should be aligned
+    #     and the diaObjectId values will be the same in both. 
+    #     The line below checks where this is True or False, then flips the booleans
+    #     (I could have done != directly, I was tired) and if anything is wrong
+    #     the code FAILS.  
+    #     NOTE: The pipeline MUST crash if tables are not joined properly.
+    #     DO NOT add a condition to bypass this check. If this is wrong. Everything will be wrong. 
     if sum(~(clean_df.diaObjectId == clean_df.diaObjectId_sourceId)) > 0:
         raise ValueError("The diaObjectId from the filter output and the diaObjectId from the latest diaSourceId do not match for some rows. This should never happen, check your code.")
 

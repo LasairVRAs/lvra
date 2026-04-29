@@ -177,16 +177,18 @@ def make_features(input_path: Path,
             logger.warning(f"[MAKE_FEATURES] WARNING - {len(objectIds_withoutAlert_col)}/{features_df.shape[0]} diaObjectIds had no alert key in their JSON entry"
                            f"and are NOT INCLUDED IN THE OUTPUT. List of diaObjectIds:\n{str(objectIds_withoutAlert_col)}")
             logger.info(f"[MAKE_FATURES] PARTIAL SUCCESS - {output_path} created ")
+
+            return -1, clean_df
             
         logger.info(f"[MAKE_FEATURES] SUCCESS - {output_path} created ")
-        return -1, clean_df
+        return 0, clean_df
 
     except FileNotFoundError:
         logger.error("[MAKE_FEATURES] FAIL - reason= OUTPUT FileNotFound")
         return 22, None
     except Exception as e:
         logger.error(f"[MAKE_FEATURES] FAIL -  reason={e}")
-        return 1, clean_df
+        return 1, None 
     
 
 # #-#-# #
