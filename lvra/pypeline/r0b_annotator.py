@@ -138,6 +138,8 @@ def annotate_loop(pending_annotations,
     stem_list = []
 
     for i, row in pending_annotations.iterrows():
+        # If wanted tpo set a threshold below whcih annotations are not sent to Lasair could do:
+        # if row['score'] < THRESHOLD: continue
         # Grab the threshold flags from the sqlite table
         exit_code, flags_dict = get_threshold_flags(sqlite_cursor, row['diaSourceId'], row['stem'], logger)
 
