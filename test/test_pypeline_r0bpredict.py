@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 import lvra.pypeline.r0b_predict as predict_module
-from conftest import initialise_log_db
+from .helpers import initialise_log_db
 
 # Helpers --------------------------------------------------------------------
 
