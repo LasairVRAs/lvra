@@ -102,7 +102,9 @@ def test_parse_logs_and_no_new_csvs(tmp_path, monkeypatch):
     sha = file_sha256(csv_path)
     logfile = logs_dir / "make_pool.log"
     logfile.write_text(
-        f"2025-12-08 12:44:28,771 [INFO] something: ADDED_TO_XPOOL file={csv_path} sha256={sha} nrows=2 xpool=/pool/X_pool.parquet\n"
+        "2025-12-08 12:44:28,771 [INFO] something: "
+        f"ADDED_TO_XPOOL file={csv_path} sha256={sha} "
+        "nrows=2 xpool=/pool/X_pool.parquet\n"
     )
 
     # import module (fresh)
@@ -202,3 +204,122 @@ def test_update_preserves_existing_rows_and_dedup(tmp_path, monkeypatch):
     # ensure diaObjectId '1' kept the original 'val' value ("old")
     row1 = out[out["diaObjectId"].astype(str) == "1"].iloc[0]
     assert row1["val"] == "old"
+
+
+def test_update_x_pool_no_csv_files_returns_without_pool(tmp_path):
+    root = tmp_path
+    csv_dir = root / "csv"
+    logs_dir = root / "logs"
+    pool_dir = root / "pool"
+    csv_dir.mkdir()
+    logs_dir.mkdir()
+    pool_dir.mkdir()
+
+    training = _reload_training_module(root)
+
+    ret = training.update_X_pool(csv_dir=csv_dir, logs_dir=logs_dir, pool_dir=pool_dir)
+
+    assert ret is None
+    assert not (pool_dir / "X_pool.parquet").exists()
+    assert "No new CSV files" in (logs_dir / "make_pool.log").read_text()
+
+
+def test_parse_logs_for_added_reads_hashes_from_multiple_log_files(tmp_path):
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    (logs_dir / "a.log").write_text("ADDED_TO_XPOOL file=a sha256=abc123 nrows=1\n")
+    (logs_dir / "b.log").write_text("noise\nADDED_TO_XPOOL file=b sha256=def456 nrows=2\n")
+
+    training = _reload_training_module(tmp_path)
+
+    assert training._parse_logs_for_added(logs_dir) == {"abc123", "def456"}
+
+
+def test_update_x_pool_skips_csv_read_errors_and_logs_failure(tmp_path, monkeypatch):
+    pytest.importorskip("fastparquet")
+    root = tmp_path
+    csv_dir = root / "csv"
+    logs_dir = root / "logs"
+    pool_dir = root / "pool"
+    csv_dir.mkdir()
+    logs_dir.mkdir()
+    pool_dir.mkdir()
+
+    bad_csv = csv_dir / "bad.csv"
+    bad_csv.write_text("not,used\n", encoding="utf-8")
+
+    training = _reload_training_module(root)
+    monkeypatch.setattr(training, "sha256_of_file", lambda p: "abc123")
+    monkeypatch.setattr(training.pd, "read_csv", lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("bad csv")))
+
+    ret = training.update_X_pool(csv_dir=csv_dir, logs_dir=logs_dir, pool_dir=pool_dir)
+
+    assert ret == 0
+    out = pd.read_parquet(pool_dir / "X_pool.parquet")
+    assert out.empty
+    log_text = (logs_dir / "make_pool.log").read_text()
+    assert "Failed to read CSV" in log_text
+    assert "ADDED_TO_XPOOL" not in log_text
+
+
+def test_update_x_pool_deduplicates_on_configured_index_col(tmp_path, monkeypatch):
+    pytest.importorskip("fastparquet")
+    root = tmp_path
+    csv_dir = root / "csv"
+    logs_dir = root / "logs"
+    pool_dir = root / "pool"
+    csv_dir.mkdir()
+    logs_dir.mkdir()
+    pool_dir.mkdir()
+
+    existing = pd.DataFrame({"diaObjectId": ["old-obj"], "diaSourceId": ["same"], "val": ["old"]})
+    existing.to_parquet(pool_dir / "X_pool.parquet", index=False)
+    new = pd.DataFrame(
+        {
+            "diaObjectId": ["new-obj", "fresh-obj"],
+            "diaSourceId": ["same", "fresh"],
+            "val": ["new", "fresh"],
+        }
+    )
+    new_path = csv_dir / "new.csv"
+    write_csv(new_path, new)
+
+    training = _reload_training_module(root)
+    monkeypatch.setattr(training, "sha256_of_file", lambda p: file_sha256(Path(p)))
+
+    ret = training.update_X_pool(csv_dir=csv_dir, logs_dir=logs_dir, pool_dir=pool_dir, index_col="diaSourceId")
+
+    assert ret == 0
+    out = pd.read_parquet(pool_dir / "X_pool.parquet")
+    assert out["diaSourceId"].tolist() == ["same", "fresh"]
+    assert out["val"].tolist() == ["old", "fresh"]
+
+
+def test_update_x_pool_preserves_existing_pool_when_parquet_write_fails(tmp_path, monkeypatch):
+    pytest.importorskip("fastparquet")
+    root = tmp_path
+    csv_dir = root / "csv"
+    logs_dir = root / "logs"
+    pool_dir = root / "pool"
+    csv_dir.mkdir()
+    logs_dir.mkdir()
+    pool_dir.mkdir()
+
+    existing = pd.DataFrame({"diaObjectId": ["1"], "diaSourceId": ["10"], "val": ["old"]})
+    existing.to_parquet(pool_dir / "X_pool.parquet", index=False)
+    new_path = csv_dir / "new.csv"
+    write_csv(new_path, pd.DataFrame({"diaObjectId": ["2"], "diaSourceId": ["20"], "val": ["new"]}))
+
+    training = _reload_training_module(root)
+    monkeypatch.setattr(training, "sha256_of_file", lambda p: file_sha256(Path(p)))
+
+    def failing_to_parquet(self, *args, **kwargs):
+        raise RuntimeError("write failed")
+
+    monkeypatch.setattr(training.pd.DataFrame, "to_parquet", failing_to_parquet)
+
+    with pytest.raises(RuntimeError, match="write failed"):
+        training.update_X_pool(csv_dir=csv_dir, logs_dir=logs_dir, pool_dir=pool_dir)
+
+    out = pd.read_parquet(pool_dir / "X_pool.parquet")
+    assert out.to_dict("records") == [{"diaObjectId": "1", "diaSourceId": "10", "val": "old"}]
