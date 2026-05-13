@@ -8,10 +8,12 @@ for fast, isolated testing suitable for CI/CD.
 import pytest
 from unittest.mock import Mock, patch, MagicMock, call
 import json
+import sqlite3
 from datetime import datetime
 
 # Import the actual module
 from lvra.pypeline import kafka_consumer
+from test.helpers import initialise_log_db
 
 
 # #-#-#-#-#-#-#-# #
@@ -331,6 +333,75 @@ class TestErrorHandling:
         assert not temp_file.exists()
 
 
+    @patch('lvra.pypeline.kafka_consumer.lasair_consumer')
+    @patch('lvra.pypeline.kafka_consumer.set_up')
+    @patch('lvra.pypeline.kafka_consumer.sqlite3')
+    @patch('lvra.pypeline.kafka_consumer.datetime')
+    def test_invalid_json_message_raises_and_does_not_touch_db(
+        self,
+        mock_datetime,
+        mock_sqlite3,
+        mock_set_up,
+        mock_lasair_consumer,
+        mock_setup_dict,
+    ):
+        """Invalid Kafka payload JSON should fail before final file or DB updates."""
+        mock_set_up.return_value = mock_setup_dict
+        mock_datetime.utcnow.return_value = datetime(2024, 1, 15, 10, 30, 45)
+
+        bad_msg = Mock()
+        bad_msg.error.return_value = None
+        bad_msg.value.return_value = "{not-json"
+        consumer = Mock()
+        consumer.poll.return_value = bad_msg
+        mock_lasair_consumer.return_value = consumer
+
+        mock_setup_dict['json_dir'].mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(json.JSONDecodeError):
+            kafka_consumer.main()
+
+        final_file = mock_setup_dict['json_dir'] / '20240115_103045.json'
+        assert not final_file.exists()
+        mock_sqlite3.connect.assert_not_called()
+
+
+    @patch('lvra.pypeline.kafka_consumer.lasair_consumer')
+    @patch('lvra.pypeline.kafka_consumer.set_up')
+    @patch('lvra.pypeline.kafka_consumer.os.replace')
+    @patch('lvra.pypeline.kafka_consumer.sqlite3')
+    @patch('lvra.pypeline.kafka_consumer.datetime')
+    def test_finalization_failure_leaves_temp_file_and_skips_db(
+        self,
+        mock_datetime,
+        mock_sqlite3,
+        mock_replace,
+        mock_set_up,
+        mock_lasair_consumer,
+        mock_setup_dict,
+        mock_kafka_message,
+    ):
+        """If atomic rename fails, the temp file is left for inspection and DB is untouched."""
+        mock_set_up.return_value = mock_setup_dict
+        mock_datetime.utcnow.return_value = datetime(2024, 1, 15, 10, 30, 45)
+        mock_replace.side_effect = OSError("rename failed")
+
+        consumer = Mock()
+        consumer.poll.side_effect = [mock_kafka_message('LSSTfinalize001'), None]
+        mock_lasair_consumer.return_value = consumer
+
+        mock_setup_dict['json_dir'].mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(OSError, match="rename failed"):
+            kafka_consumer.main()
+
+        temp_file = mock_setup_dict['json_dir'] / '20240115_103045.jsn.tmp'
+        final_file = mock_setup_dict['json_dir'] / '20240115_103045.json'
+        assert temp_file.exists()
+        assert not final_file.exists()
+        mock_sqlite3.connect.assert_not_called()
+
+
 class TestEdgeCases:
     """Tests for edge cases and potential issues."""
     
@@ -430,51 +501,50 @@ class TestEdgeCases:
 @pytest.fixture
 def real_sqlite_db(tmp_path):
     """Create a real SQLite database with the expected schema for integration tests."""
-    import sqlite3
-    
     db_path = tmp_path / 'test.db'
-    con = sqlite3.connect(db_path)
-    cur = con.cursor()
-    
-    # Create tables (adjust based on your actual schema)
-    cur.execute("""
-        CREATE TABLE feature_making (
-            stem TEXT PRIMARY KEY,
-            r0b INTEGER,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE predict (
-            stem TEXT PRIMARY KEY,
-            r0b INTEGER, 
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    
-    cur.execute("""
-        CREATE TABLE annotating (
-            stem TEXT PRIMARY KEY,
-            r0b INTEGER, 
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    return initialise_log_db(db_path)
 
 
-    
-    cur.execute("""
-        CREATE TABLE diaobjid_stems (
-            diaObjectId TEXT PRIMARY KEY,
-            stem TEXT, 
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP 
-        )
-    """)
-    
-    con.commit()
-    con.close()
-    
-    return db_path
+@patch('lvra.pypeline.kafka_consumer.lasair_consumer')
+@patch('lvra.pypeline.kafka_consumer.set_up')
+@patch('lvra.pypeline.kafka_consumer.datetime')
+def test_consumer_writes_expected_rows_to_real_schema_db(
+    mock_datetime,
+    mock_set_up,
+    mock_lasair_consumer,
+    mock_setup_dict,
+    mock_kafka_message,
+    real_sqlite_db,
+):
+    """Integration-style check against the canonical log DB schema."""
+    mock_setup_dict['log_db'] = real_sqlite_db
+    mock_setup_dict['json_dir'].mkdir(parents=True, exist_ok=True)
+    mock_set_up.return_value = mock_setup_dict
+    mock_datetime.utcnow.return_value = datetime(2024, 1, 15, 10, 30, 45)
+
+    consumer = Mock()
+    consumer.poll.side_effect = [
+        mock_kafka_message('170000000000000001'),
+        mock_kafka_message('170000000000000001'),
+        None,
+    ]
+    mock_lasair_consumer.return_value = consumer
+
+    assert kafka_consumer.main() == 0
+
+    with sqlite3.connect(real_sqlite_db) as con:
+        assert con.execute("SELECT stem, r0b FROM feature_making").fetchall() == [
+            ('20240115_103045', 0)
+        ]
+        assert con.execute("SELECT stem, r0b FROM predict").fetchall() == [
+            ('20240115_103045', 0)
+        ]
+        assert con.execute("SELECT stem, r0b FROM annotating").fetchall() == [
+            ('20240115_103045', 0)
+        ]
+        assert con.execute("SELECT diaObjectId, stem FROM diaobjid_stems").fetchall() == [
+            (170000000000000001, '20240115_103045')
+        ]
 
 
 # #-#-#-#-#-#-#-# #

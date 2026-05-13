@@ -1,67 +1,19 @@
 # tests/test_pypeline_r0bannotator.py
 import sqlite3
 import logging
+from pathlib import Path
 import pandas as pd
 
 import lvra.pypeline.r0b_annotator as annotator_module
+from test.helpers import initialise_log_db
 
 # Helpers --------------------------------------------------------------------
 
 def _create_db(path: str):
-    """Create a sqlite DB with the tables used by the annotator and return connection/cursor."""
+    """Create a sqlite DB from the canonical production schema."""
+    initialise_log_db(Path(path))
     con = sqlite3.connect(path)
     cur = con.cursor()
-    # minimal provenance and annotating schemas used by get_pending_annotations and update
-    cur.execute(
-        """
-        CREATE TABLE provenance (
-            ID INTEGER PRIMARY KEY, 
-            diaObjectId INTEGER,
-            diaSourceId INTEGER, 
-            stem TEXT,
-            score REAL,
-            model_name TEXT,
-            model_version TEXT,
-            timestamp TEXT NOT NULL DEFAULT current_timestamp
-        );
-
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE annotating (
-            stem TEXT PRIMARY KEY,
-            timestamp TEXT NOT NULL DEFAULT current_timestamp,
-            r0b INTEGER
-        );
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS threshold_flags_provenance(
-        ID INTEGER PRIMARY KEY,
-        diaObjectId INTEGER,                                                                                             
-        diaSourceId INTEGER,                                                                                             
-        stem TEXT,
-        n_gt22 INTEGER,
-        n_gt21 INTEGER,
-        n_gt20 INTEGER,
-        n_gt19 INTEGER,
-        n_gt18 INTEGER,
-        brighter22 INTEGER,
-        brighter21 INTEGER,
-        brighter20 INTEGER,
-        brighter19 INTEGER,
-        brighter18 INTEGER,
-        first22 INTEGER,
-        first21 INTEGER,
-        first20 INTEGER,
-        first19 INTEGER,
-        first18 INTEGER,
-        timestamp TEXT NOT NULL DEFAULT current_timestamp);
-        """
-    )
-    con.commit()
     return con, cur
 
 # Tests ----------------------------------------------------------------------
@@ -110,6 +62,68 @@ def test_get_threshold_flags(tmp_path):
         'first19': 0,
         'first18': 0,
     }
+
+
+def test_get_threshold_flags_returns_none_values_when_missing(tmp_path):
+    dbfile = str(tmp_path / "test_flags_missing.db")
+    con, cur = _create_db(dbfile)
+    con.row_factory = lambda cursor, row: {col[0]: row[i] for i, col in enumerate(cursor.description)}
+    cur = con.cursor()
+
+    exit_code, flags_dict = annotator_module.get_threshold_flags(
+        sqlite_cursor=cur,
+        diaSourceId=9999,
+        stem="missing_stem",
+        logger=logging.getLogger("test"),
+    )
+
+    assert exit_code == 0
+    assert set(flags_dict) == {
+        'n_gt22', 'n_gt21', 'n_gt20', 'n_gt19', 'n_gt18',
+        'brighter22', 'brighter21', 'brighter20', 'brighter19', 'brighter18',
+        'first22', 'first21', 'first20', 'first19', 'first18',
+    }
+    assert all(value is None for value in flags_dict.values())
+    con.close()
+
+
+def test_get_threshold_flags_uses_latest_duplicate_row(tmp_path):
+    dbfile = str(tmp_path / "test_flags_duplicate.db")
+    con, cur = _create_db(dbfile)
+
+    rows = [
+        (1, 1680, 1780, "stem1", 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+        (2, 1680, 1780, "stem1", 3, 2, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0),
+    ]
+    cur.executemany(
+        """
+        INSERT INTO threshold_flags_provenance (ID, diaObjectId, diaSourceId, stem, n_gt22, n_gt21, n_gt20, n_gt19, n_gt18,
+                                              brighter22, brighter21, brighter20, brighter19, brighter18,
+                                              first22, first21, first20, first19, first18)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """,
+        rows,
+    )
+    con.commit()
+    con.close()
+
+    con_with_factory = sqlite3.connect(dbfile)
+    con_with_factory.row_factory = lambda cursor, row: {col[0]: row[i] for i, col in enumerate(cursor.description)}
+    cur_with_factory = con_with_factory.cursor()
+
+    exit_code, flags_dict = annotator_module.get_threshold_flags(
+        sqlite_cursor=cur_with_factory,
+        diaSourceId=1780,
+        stem="stem1",
+        logger=logging.getLogger("test"),
+    )
+
+    assert exit_code == 0
+    assert flags_dict["n_gt22"] == 3
+    assert flags_dict["n_gt21"] == 2
+    assert flags_dict["brighter20"] == 0
+    assert flags_dict["first22"] == 1
+    con_with_factory.close()
 
 def test_get_pending_annotations(tmp_path):
     dbfile = str(tmp_path / "test_pending.db")
@@ -246,4 +260,86 @@ def test_main_no_pending_annotations_returns_0(monkeypatch, tmp_path):
 
     ret = annotator_module.main()
     assert ret == 0
+    con.close()
+
+
+def test_main_returns_41_when_lasair_client_construction_fails(monkeypatch, tmp_path):
+    dbfile = str(tmp_path / "main_client_failure.db")
+    con, cur = _create_db(dbfile)
+    cur.execute(
+        "INSERT INTO provenance (ID, diaObjectId, diaSourceId, stem, score, model_name, model_version) VALUES (?, ?, ?, ?, ?, ?, ?);",
+        (1, 100, 200, "stem1", 0.87, "r0b", "v1"),
+    )
+    cur.execute("INSERT INTO annotating (stem, r0b) VALUES (?, ?);", ("stem1", 0))
+    con.commit()
+    con.close()
+
+    monkeypatch.setattr(annotator_module, "LASAIR_TOKEN", "dummy-token")
+    monkeypatch.setattr(annotator_module, "set_up", lambda settings_path, log_name, logger: {"log_db": dbfile, "endpoint": "http://x"})
+    monkeypatch.setattr(annotator_module, "read_model_config", lambda path, logger: ({
+        "MODEL_NAME": "r0b",
+        "MODEL_VERSION": "v1",
+        "TOPIC_OUT": "t",
+        "EXPLANATION": "e",
+        "URL": "u",
+    }, 0))
+    monkeypatch.setattr(
+        annotator_module.lasair,
+        "lasair_client",
+        lambda token, endpoint: (_ for _ in ()).throw(RuntimeError("client failed")),
+    )
+
+    assert annotator_module.main() == 41
+
+
+def test_main_records_partial_success_for_mixed_annotation_results(monkeypatch, tmp_path):
+    dbfile = str(tmp_path / "main_partial_annotations.db")
+    con, cur = _create_db(dbfile)
+    stem = "stem1"
+    cur.executemany(
+        "INSERT INTO provenance (ID, diaObjectId, diaSourceId, stem, score, model_name, model_version) VALUES (?, ?, ?, ?, ?, ?, ?);",
+        [
+            (1, 100, 200, stem, 0.87, "r0b", "v1"),
+            (2, 101, 201, stem, 0.12, "r0b", "v1"),
+        ],
+    )
+    cur.execute("INSERT INTO annotating (stem, r0b) VALUES (?, ?);", (stem, 0))
+    cur.executemany(
+        """
+        INSERT INTO threshold_flags_provenance (diaObjectId, diaSourceId, stem, n_gt22, n_gt21, n_gt20, n_gt19, n_gt18,
+                                              brighter22, brighter21, brighter20, brighter19, brighter18,
+                                              first22, first21, first20, first19, first18)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """,
+        [
+            (100, 200, stem, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0),
+            (101, 201, stem, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0),
+        ],
+    )
+    con.commit()
+    con.close()
+
+    class MockLasair:
+        def annotate(self, topic, objectId, classification, version, explanation, classdict, url):
+            if objectId == "101":
+                raise RuntimeError("annotation failed")
+            return True
+
+    monkeypatch.setattr(annotator_module, "LASAIR_TOKEN", "dummy-token")
+    monkeypatch.setattr(annotator_module, "set_up", lambda settings_path, log_name, logger: {"log_db": dbfile, "endpoint": "http://x"})
+    monkeypatch.setattr(annotator_module, "read_model_config", lambda path, logger: ({
+        "MODEL_NAME": "r0b",
+        "MODEL_VERSION": "v1",
+        "TOPIC_OUT": "t",
+        "EXPLANATION": "e",
+        "URL": "u",
+    }, 0))
+    monkeypatch.setattr(annotator_module.lasair, "lasair_client", lambda token, endpoint: MockLasair())
+
+    assert annotator_module.main() == 0
+
+    con = sqlite3.connect(dbfile)
+    cur = con.cursor()
+    cur.execute("SELECT r0b FROM annotating WHERE stem = ?;", (stem,))
+    assert cur.fetchone()[0] == -1
     con.close()

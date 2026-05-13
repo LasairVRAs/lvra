@@ -112,6 +112,9 @@ def main():
     # (that yaml file is in the same directory as SETTINGS_PATH so can take the parent)
     model_conf_dict, status_code = read_model_config(SETTINGS_PATH.parent/MODEL_CONFIG_FILE, 
                                                      logger)
+    if status_code != 0 or model_conf_dict is None:
+        logger.error(f"[MODEL CONFIG] FAIL - status={status_code}. Exiting.")
+        return status_code
          
     # Initialise our SQLite cursor and connection
     # The use of row_factory is required to get the column names when doing fetchall()
@@ -146,7 +149,16 @@ def main():
 
 
     # Load the model
-    model = joblib.load(model_conf_dict['MODEL_PATH'])
+    try:
+        model = joblib.load(model_conf_dict['MODEL_PATH'])
+    except FileNotFoundError:
+        logger.error(f"[MODEL] FAIL - model file not found path={model_conf_dict['MODEL_PATH']}")
+        con.close()
+        return 21
+    except Exception as e:
+        logger.error(f"[MODEL] FAIL - could not load model path={model_conf_dict['MODEL_PATH']} reason={e}")
+        con.close()
+        return 99
 
     # Load the dataframe for each stem
     for stem in stem_list:
@@ -156,6 +168,9 @@ def main():
             _df = pd.read_csv((setup_dict['csv_dir'].parent / stem[:8] / stem).with_suffix('.csv'))
         except FileNotFoundError:
             logger.error(f"[PREDICT] FAIL - stem={stem} reason=Feature file not found")
+            sql = "UPDATE predict SET timestamp=current_timestamp, r0b = ? WHERE stem = ?;" 
+            cur.execute(sql, (21, stem))
+            con.commit()
             continue
 
         # PREDICT
@@ -167,6 +182,12 @@ def main():
             logger.info(f"[PREDICT] SUCCESS - stem={stem}")
             status_code=1 # so the sql table has the right status
             # this is weird it's because i have a weird mix of exit codes and satus codes
+        else:
+            logger.error(f"[PREDICT] FAIL - stem={stem} status={status_code}")
+            sql = "UPDATE predict SET timestamp=current_timestamp, r0b = ? WHERE stem = ?;" 
+            cur.execute(sql, (status_code, stem))
+            con.commit()
+            continue
 
         # UPDATE PROVENANCE TABLE
         # WARNING: There is another for-loop in this function
@@ -185,6 +206,7 @@ def main():
         cur.execute(sql, (status_code, stem))
         con.commit()
 
+    con.close()
     logger.info("[PREDICT] ----- END ------- ")
     return 0 # success shell exit code
 

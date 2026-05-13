@@ -35,11 +35,10 @@ jobs:
         # ensure your package import works; add repository code to PYTHONPATH if needed
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)/lvra
-          pytest --cov=lvra --cov-report=html --cov-report=term -q
+          pytest --cov=lvra --cov-report=html --cov-report=term-missing -q
 
       - name: Upload HTML coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-html-${{ matrix.python-version }}
           path: htmlcov/
-

@@ -223,3 +223,134 @@ def test_interactive_labeling_keyboard_interrupt_saves_progress(tmp_path):
     assert df_final.iloc[0]["session_id"] == "ki-session"
     assert df_final.iloc[0]["label"] == "real"
 
+
+def test_load_labels_returns_empty_canonical_dataframe_for_missing_file(tmp_path):
+    labeling = _reload_labeling_module(tmp_path)
+
+    df = labeling.load_labels(tmp_path / "pool" / "missing.csv")
+
+    assert list(df.columns) == labeling.LABELFILE_COLUMNS
+    assert df.empty
+
+
+def test_interactive_labeling_rejects_non_dataframe_input(tmp_path):
+    labeling = _reload_labeling_module(tmp_path)
+
+    with pytest.raises(TypeError, match="pandas DataFrame"):
+        labeling.interactive_labeling(
+            df_pool=[],
+            output=str(tmp_path / "pool" / "labels.csv"),
+            sleep=0,
+        )
+
+
+def test_interactive_labeling_rejects_missing_required_columns(tmp_path):
+    labeling = _reload_labeling_module(tmp_path)
+    pool = pd.DataFrame({"diaSourceId": ["s1"]})
+
+    with pytest.raises(ValueError, match="diaObjectId"):
+        labeling.interactive_labeling(
+            df_pool=pool,
+            output=str(tmp_path / "pool" / "labels.csv"),
+            sleep=0,
+        )
+
+
+def test_interactive_labeling_invalid_label_reprompts_then_saves_valid_label(tmp_path):
+    labeling = _reload_labeling_module(tmp_path)
+    pool = pd.DataFrame({"diaSourceId": ["s1"], "diaObjectId": ["o1"]})
+    out_path = tmp_path / "pool" / "labels.csv"
+    inputs = iter(["bad", "b"])
+    opened = []
+
+    labeling.interactive_labeling(
+        df_pool=pool,
+        output=str(out_path),
+        input_func=lambda prompt: next(inputs),
+        opener=lambda url: opened.append(url),
+        session_id="invalid-then-valid",
+        sleep=0,
+    )
+
+    df_out = pd.read_csv(out_path, dtype=str)
+    assert df_out["label"].tolist() == ["bogus"]
+    assert df_out["session_id"].tolist() == ["invalid-then-valid"]
+    assert len(opened) == 2
+
+
+def test_interactive_labeling_skip_empty_and_quit_do_not_create_labels(tmp_path):
+    labeling = _reload_labeling_module(tmp_path)
+    pool = pd.DataFrame(
+        {
+            "diaSourceId": ["s1", "s2", "s3"],
+            "diaObjectId": ["o1", "o2", "o3"],
+        }
+    )
+    out_path = tmp_path / "pool" / "labels.csv"
+    inputs = iter(["s", "", "q"])
+
+    labeling.interactive_labeling(
+        df_pool=pool,
+        output=str(out_path),
+        input_func=lambda prompt: next(inputs),
+        opener=lambda url: None,
+        session_id="skip-empty-quit",
+        sleep=0,
+    )
+
+    assert not out_path.exists()
+
+
+def test_interactive_labeling_opener_failure_does_not_block_label_save(tmp_path):
+    labeling = _reload_labeling_module(tmp_path)
+    pool = pd.DataFrame({"diaSourceId": ["s1"], "diaObjectId": ["o1"]})
+    out_path = tmp_path / "pool" / "labels.csv"
+
+    def failing_opener(url):
+        raise RuntimeError("browser failed")
+
+    labeling.interactive_labeling(
+        df_pool=pool,
+        output=str(out_path),
+        input_func=lambda prompt: "r",
+        opener=failing_opener,
+        session_id="opener-failure",
+        sleep=0,
+    )
+
+    df_out = pd.read_csv(out_path, dtype=str)
+    assert df_out["diaSourceId"].tolist() == ["s1"]
+    assert df_out["label"].tolist() == ["real"]
+
+
+def test_interactive_labeling_resume_false_replaces_existing_output(tmp_path):
+    labeling = _reload_labeling_module(tmp_path)
+    out_path = tmp_path / "pool" / "labels.csv"
+    out_path.parent.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "diaSourceId": "old",
+                "diaObjectId": "old-object",
+                "label": "bogus",
+                "timestamp": "old-time",
+                "session_id": "old-session",
+                "url": "old-url",
+            }
+        ]
+    ).to_csv(out_path, index=False)
+
+    pool = pd.DataFrame({"diaSourceId": ["s1"], "diaObjectId": ["o1"]})
+    labeling.interactive_labeling(
+        df_pool=pool,
+        output=str(out_path),
+        input_func=lambda prompt: "r",
+        opener=lambda url: None,
+        session_id="new-session",
+        resume=False,
+        sleep=0,
+    )
+
+    df_out = pd.read_csv(out_path, dtype=str)
+    assert df_out["diaSourceId"].tolist() == ["s1"]
+    assert df_out["session_id"].tolist() == ["new-session"]
