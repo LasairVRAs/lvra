@@ -543,6 +543,62 @@ class TestEdgeCases:
         assert result['score'].tolist() == [0.001, 0.999, 0.5]
 
 
+    def test_single_class_predict_proba_output_raises(
+        self,
+        valid_dataframe,
+        mock_model,
+        mock_logger
+    ):
+        """The production helper expects binary predict_proba output with a class-1 column."""
+        mock_model.predict_proba.return_value = np.array([
+            [1.0],
+            [1.0],
+            [1.0],
+        ])
+
+        with pytest.raises(IndexError):
+            predict.predict(
+                df=valid_dataframe,
+                model=mock_model,
+                logger=mock_logger
+            )
+
+
+    def test_predict_proba_row_count_mismatch_raises(
+        self,
+        valid_dataframe,
+        mock_model,
+        mock_logger
+    ):
+        """Prediction score count must match the input DataFrame length."""
+        mock_model.predict_proba.return_value = np.array([
+            [0.4, 0.6],
+            [0.3, 0.7],
+        ])
+
+        with pytest.raises(ValueError):
+            predict.predict(
+                df=valid_dataframe,
+                model=mock_model,
+                logger=mock_logger
+            )
+
+
+    def test_model_without_feature_names_raises_attribute_error(
+        self,
+        valid_dataframe,
+        mock_logger
+    ):
+        model = Mock(spec=[])
+
+        with pytest.raises(AttributeError):
+            predict.predict(
+                df=valid_dataframe,
+                model=model,
+                logger=mock_logger
+            )
+
+
 # #-#-#-#-#-#-#-# #
 #   EASTER EGG!   #
 # #-#-#-#-#-#-#-# #

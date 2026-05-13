@@ -6,47 +6,14 @@ import pandas as pd
 from unittest.mock import MagicMock
 
 import lvra.pypeline.r0b_feature_maker as fm_module
+from conftest import initialise_log_db
 
 
-# Helper to create minimal DB with feature_making table -----------------------
 def _create_db(path: str):
+    """Create a sqlite DB from the canonical production schema."""
+    initialise_log_db(Path(path))
     con = sqlite3.connect(path)
     cur = con.cursor()
-    cur.execute(
-        """
-        CREATE TABLE feature_making (
-            stem TEXT PRIMARY KEY,
-            timestamp TEXT NOT NULL DEFAULT current_timestamp,
-            r0b INTEGER DEFAULT 0
-        );
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS threshold_flags_provenance(
-        ID INTEGER PRIMARY KEY,
-        diaObjectId INTEGER,                                                                                             
-        diaSourceId INTEGER,                                                                                             
-        stem TEXT,
-        n_gt22 INTEGER,
-        n_gt21 INTEGER,
-        n_gt20 INTEGER,
-        n_gt19 INTEGER,
-        n_gt18 INTEGER,
-        brighter22 INTEGER,
-        brighter21 INTEGER,
-        brighter20 INTEGER,
-        brighter19 INTEGER,
-        brighter18 INTEGER,
-        first22 INTEGER,
-        first21 INTEGER,
-        first20 INTEGER,
-        first19 INTEGER,
-        first18 INTEGER,
-        timestamp TEXT NOT NULL DEFAULT current_timestamp);
-        """
-    )
-    con.commit()
     return con, cur
 
 
@@ -166,6 +133,73 @@ def test_main_updates_feature_making_status(monkeypatch, tmp_path):
     ret = fm_module.main()
     assert ret == 0
 
+    con = sqlite3.connect(dbfile)
+    cur = con.cursor()
+    cur.execute("SELECT r0b FROM feature_making WHERE stem = ?;", (stem,))
+    assert cur.fetchone()[0] == 1
+    con.close()
+
+
+def test_main_updates_feature_making_status_for_partial_success(monkeypatch, tmp_path):
+    """Partial feature creation should be recorded as -1 so the stem is not retried as a full failure."""
+    dbfile = str(tmp_path / "fm_partial.db")
+    con, cur = _create_db(dbfile)
+
+    stem = "20260202_102448"
+    cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", (stem, 0))
+    con.commit()
+    con.close()
+
+    json_date_dir = tmp_path / "jsonroot" / stem[:8]
+    csv_date_dir = tmp_path / "csvroot" / stem[:8]
+    json_date_dir.mkdir(parents=True)
+    csv_date_dir.mkdir(parents=True)
+
+    fake_setup = {
+        "log_db": dbfile,
+        "json_dir": json_date_dir / "placeholder",
+        "csv_dir": csv_date_dir / "placeholder",
+    }
+    monkeypatch.setattr(fm_module, "set_up", lambda settings_path, log_name, logger: fake_setup)
+    monkeypatch.setattr(fm_module, "json2cleandf", lambda path: (_sample_clean_df(), [999]))
+
+    ret = fm_module.main()
+    assert ret == 0
+
+    con = sqlite3.connect(dbfile)
+    cur = con.cursor()
+    cur.execute("SELECT r0b FROM feature_making WHERE stem = ?;", (stem,))
+    assert cur.fetchone()[0] == -1
+    con.close()
+
+
+def test_main_records_missing_json_status_code(monkeypatch, tmp_path):
+    """A missing input JSON should be recorded as status 21 in feature_making."""
+    dbfile = str(tmp_path / "fm_missing_json.db")
+    con, cur = _create_db(dbfile)
+
+    stem = "20260202_102448"
+    cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", (stem, 0))
+    con.commit()
+    con.close()
+
+    fake_setup = {
+        "log_db": dbfile,
+        "json_dir": tmp_path / "jsonroot" / stem[:8] / "placeholder",
+        "csv_dir": tmp_path / "csvroot" / stem[:8] / "placeholder",
+    }
+    monkeypatch.setattr(fm_module, "set_up", lambda settings_path, log_name, logger: fake_setup)
+    monkeypatch.setattr(fm_module, "json2cleandf", lambda path: (_ for _ in ()).throw(FileNotFoundError()))
+
+    ret = fm_module.main()
+    assert ret == 0
+
+    con = sqlite3.connect(dbfile)
+    cur = con.cursor()
+    cur.execute("SELECT r0b FROM feature_making WHERE stem = ?;", (stem,))
+    assert cur.fetchone()[0] == 21
+    con.close()
+
 
 
 
@@ -230,6 +264,67 @@ def test_threshold_flags_provenance(monkeypatch, tmp_path):
     assert row[16] == 0  # first_time_20
     assert row[17] == 0  # first_time_19
     assert row[18] == 0  # first_time_18    
+
+
+def test_threshold_flags_provenance_returns_99_when_required_columns_missing(tmp_path):
+    dbfile = str(tmp_path / "provenance_missing_columns.db")
+    con, cur = _create_db(dbfile)
+
+    clean_df = pd.DataFrame({
+        "diaObjectId": [1],
+        "diaSourceId": [100],
+    })
+
+    exit_code = fm_module.threshold_flags_provenance(
+        clean_df=clean_df,
+        stem="20260202_102448",
+        sqlite_cursor=cur,
+        connection=con,
+        logger=logging.getLogger("test"),
+    )
+
+    assert exit_code == 99
+    cur.execute("SELECT COUNT(*) FROM threshold_flags_provenance;")
+    assert cur.fetchone()[0] == 0
+    con.close()
+
+
+def test_threshold_flags_provenance_returns_99_when_insert_fails(tmp_path):
+    dbfile = str(tmp_path / "provenance_insert_failure.db")
+    con, cur = _create_db(dbfile)
+
+    clean_df = pd.DataFrame({
+        "diaObjectId": [1],
+        "diaSourceId": [100],
+        "N_above_22": [2],
+        "N_above_21": [1],
+        "N_above_20": [0],
+        "N_above_19": [0],
+        "N_above_18": [0],
+        "is_above_22": [True],
+        "is_above_21": [True],
+        "is_above_20": [False],
+        "is_above_19": [False],
+        "is_above_18": [False],
+        "first_time_22": [True],
+        "first_time_21": [True],
+        "first_time_20": [False],
+        "first_time_19": [False],
+        "first_time_18": [False],
+    })
+
+    cur.execute("DROP TABLE threshold_flags_provenance;")
+
+    exit_code = fm_module.threshold_flags_provenance(
+        clean_df=clean_df,
+        stem="20260202_102448",
+        sqlite_cursor=cur,
+        connection=con,
+        logger=logging.getLogger("test"),
+    )
+
+    assert exit_code == 99
+    con.close()
     
 TEST_STEM = "20260202_102448"
 

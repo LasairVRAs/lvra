@@ -6,47 +6,15 @@ from pathlib import Path
 import pandas as pd
 
 import lvra.pypeline.r0b_predict as predict_module
+from conftest import initialise_log_db
 
 # Helpers --------------------------------------------------------------------
 
 def _create_db(path: str):
-    """Create a sqlite DB with the tables used by the predictor and return connection/cursor."""
+    """Create a sqlite DB from the canonical production schema."""
+    initialise_log_db(Path(path))
     con = sqlite3.connect(path)
     cur = con.cursor()
-    cur.execute(
-        """
-        CREATE TABLE provenance (
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            diaObjectId INTEGER,
-            diaSourceId INTEGER,
-            stem TEXT,
-            score REAL,
-            model_name TEXT,
-            model_version TEXT
-        );
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE predict (
-            stem TEXT PRIMARY KEY,
-            timestamp TEXT NOT NULL DEFAULT current_timestamp,
-            r0b INTEGER DEFAULT 0
-        );
-        """
-    )
-
-
-    cur.execute(
-        """
-        CREATE TABLE feature_making (
-            stem TEXT PRIMARY KEY,
-            timestamp TEXT NOT NULL DEFAULT current_timestamp,
-            r0b INTEGER DEFAULT 0
-        );
-        """
-    )
-    con.commit()
     return con, cur
 
 # Tests ----------------------------------------------------------------------
@@ -128,6 +96,46 @@ def test_main_no_stems_returns_0(monkeypatch, tmp_path):
     assert ret == 0
 
 
+def test_main_returns_model_config_status_when_config_fails(monkeypatch, tmp_path):
+    """A missing or invalid model config should return its explicit status code."""
+    dbfile = str(tmp_path / "bad_config.db")
+    con, cur = _create_db(dbfile)
+    con.close()
+
+    monkeypatch.setattr(predict_module, "set_up", lambda settings_path, log_name, logger: {
+        "log_db": dbfile,
+        "csv_dir": Path("/nonexistent")
+    })
+    monkeypatch.setattr(predict_module, "read_model_config", lambda path, logger: (None, 21))
+
+    ret = predict_module.main()
+    assert ret == 21
+
+
+def test_main_returns_21_when_model_file_is_missing(monkeypatch, tmp_path):
+    """A missing model file should fail clearly before processing stems."""
+    dbfile = str(tmp_path / "missing_model.db")
+    con, cur = _create_db(dbfile)
+    cur.execute("INSERT INTO predict (stem, r0b) VALUES (?, ?);", ("20260202_102448", 0))
+    cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", ("20260202_102448", 1))
+    con.commit()
+    con.close()
+
+    missing_model_path = tmp_path / "does_not_exist.joblib"
+    monkeypatch.setattr(predict_module, "set_up", lambda settings_path, log_name, logger: {
+        "log_db": dbfile,
+        "csv_dir": Path(tmp_path) / "csvs"
+    })
+    monkeypatch.setattr(predict_module, "read_model_config", lambda path, logger: ({
+        "MODEL_NAME": "r0b",
+        "MODEL_VERSION": "v1",
+        "MODEL_PATH": str(missing_model_path),
+    }, 0))
+
+    ret = predict_module.main()
+    assert ret == 21
+
+
 def test_main_missing_csv_continues_and_no_provenance_inserted(monkeypatch, tmp_path):
     """If a feature CSV for a stem is missing, prediction is skipped and no provenance rows inserted."""
     dbfile = str(tmp_path / "missingcsv.db")
@@ -159,6 +167,51 @@ def test_main_missing_csv_continues_and_no_provenance_inserted(monkeypatch, tmp_
     cur2.execute("SELECT COUNT(*) FROM provenance;")
     count = cur2.fetchone()[0]
     assert count == 0
+    cur2.execute("SELECT r0b FROM predict WHERE stem = ?;", ("20260202_102448",))
+    assert cur2.fetchone()[0] == 21
+    con2.close()
+
+
+def test_main_records_predict_failure_without_writing_provenance(monkeypatch, tmp_path):
+    """If predict() returns an error status, record it and skip provenance inserts."""
+    dbfile = str(tmp_path / "predict_failure.db")
+    con, cur = _create_db(dbfile)
+
+    stem = "20260202_102448"
+    cur.execute("INSERT INTO predict (stem, r0b) VALUES (?, ?);", (stem, 0))
+    cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", (stem, 1))
+    con.commit()
+    con.close()
+
+    csv_parent = tmp_path / "csvroot" / stem[:8]
+    csv_parent.mkdir(parents=True)
+    pd.DataFrame({
+        "diaObjectId": [1000],
+        "diaSourceId": [2000],
+        "featureA": [1.0],
+    }).to_csv(csv_parent / f"{stem}.csv", index=False)
+
+    monkeypatch.setattr(predict_module, "set_up", lambda settings_path, log_name, logger: {
+        "log_db": dbfile,
+        "csv_dir": csv_parent.parent / "placeholder"
+    })
+    monkeypatch.setattr(predict_module, "read_model_config", lambda path, logger: ({
+        "MODEL_NAME": "r0b",
+        "MODEL_VERSION": "v1",
+        "MODEL_PATH": str(tmp_path / "model.joblib")
+    }, 0))
+    monkeypatch.setattr(joblib, "load", lambda p: object())
+    monkeypatch.setattr(predict_module, "predict", lambda df, model, logger: (None, 31))
+
+    ret = predict_module.main()
+    assert ret == 0
+
+    con2 = sqlite3.connect(dbfile)
+    cur2 = con2.cursor()
+    cur2.execute("SELECT COUNT(*) FROM provenance;")
+    assert cur2.fetchone()[0] == 0
+    cur2.execute("SELECT r0b FROM predict WHERE stem = ?;", (stem,))
+    assert cur2.fetchone()[0] == 31
     con2.close()
 
 
@@ -229,4 +282,3 @@ def test_main_full_flow_calls_predict_and_writes_provenance(monkeypatch, tmp_pat
         (1001, 2001, stem, 0.99),
     ]
     con2.close()
-
