@@ -13,7 +13,7 @@ from datetime import datetime
 
 # Import the actual module
 from lvra.pypeline import kafka_consumer
-from .helpers import initialise_log_db
+from test.helpers import initialise_log_db
 
 
 # #-#-#-#-#-#-#-# #

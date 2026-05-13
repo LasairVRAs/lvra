@@ -6,7 +6,7 @@ import pandas as pd
 from unittest.mock import MagicMock
 
 import lvra.pypeline.r0b_feature_maker as fm_module
-from .helpers import initialise_log_db
+from test.helpers import initialise_log_db
 
 
 def _create_db(path: str):
