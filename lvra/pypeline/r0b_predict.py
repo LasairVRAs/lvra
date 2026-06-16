@@ -131,8 +131,6 @@ def main():
     # Find the stems that need to be processed:
     # those with "annotating" status not 1 or -1, AND a feature_making status of 1 or -1
     # (we can't make predictions without feature files)
-    # TODO: I need to split predict and annotate otherwise I'm going to the the predict step again
-    # if the code fails below at the annotation stage!
     stem_list = stemlist_from_log(sqlite_cursor=cur,
                                   model_name=model_conf_dict['MODEL_NAME'],
                                   logger=logger)

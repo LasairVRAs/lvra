@@ -22,13 +22,13 @@ from lvra.utils import misc
 # #-#-#-#-#-#-#-# #
 
 @pytest.fixture
-def valid_settings_config():
+def valid_settings_config(tmp_path):
     """Return a valid settings configuration dictionary."""
     return {
         'kafka_server': 'kafka.example.com:9092',
         'my_topic': 'lasair_topic',
         'group_id': 'test_group_123',
-        'base_dir': '/tmp/test_base',
+        'base_dir': str(tmp_path / "base"),
         'endpoint': 'https://lasair.example.com/api'
     }
 
@@ -106,7 +106,7 @@ class TestSetUpFunction:
         assert all(key in result for key in expected_keys)
         
         # Verify directory paths are correct
-        base = Path('/tmp/test_base')
+        base = tmp_path / "base"
         assert result['json_dir'] == base / "JSON" / "2026" / "20260127"
         assert result['csv_dir'] == base / "csv" / "2026" / "20260127"
         assert result['log_dir'] == base / "logs" / "2026" / "20260127"
@@ -153,7 +153,8 @@ class TestSetUpFunction:
         mock_logging,
         mock_datetime,
         temp_settings_file,
-        mock_logger
+        mock_logger,
+        tmp_path
     ):
         """Test that subdirectory structure changes with date."""
         # Test with different date
@@ -165,7 +166,7 @@ class TestSetUpFunction:
             logger=mock_logger
         )
         
-        base = Path('/tmp/test_base')
+        base = tmp_path / "base"
         assert result['json_dir'] == base / "JSON" / "2025" / "20251231"
         assert result['csv_dir'] == base / "csv" / "2025" / "20251231"
         assert result['log_dir'] == base / "logs" / "2025" / "20251231"
@@ -457,7 +458,7 @@ class TestConfigValidation:
             'kafka_sever': 'kafka.example.com:9092',  # TYPO!
             'my_topic': 'ztf_topic',
             'group_id': 'test_group_123',
-            'base_dir': '/tmp/test_base',
+            'base_dir': str(tmp_path / "base"),
             'endpoint': 'https://lasair.example.com/api'
         }
         
