@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from lvra.utils.features import json2cleandf
+from lvra.utils.features import json2cleandf, flux_threshold_features
 
 HERE = Path(__file__).resolve().parent
 TEST_JSON = HERE.parent / "data" / "test" / "20260205_073301.json"
@@ -48,6 +48,46 @@ def test_json2cleandf():
     assert clean_df.diaSourceId.shape[0] == clean_df.shape[0], "diaSourceId column should have same number of rows as clean data frame"
     assert clean_df.shape[0] == 32, "The clean data frame should have 32 rows. WARNING: TEST FILE SPECIFIC"
     assert clean_df.shape[1] == 137, "The clean data frame should have 137 columns. WARNING: TEST FILE SPECIFIC"
+
+
+_THRESHOLD = 5_754  # mag 22 in nJy
+
+
+class TestFluxThresholdFeatures:
+    def _lc(self, fluxes, mjds):
+        return pd.DataFrame({'psfFlux': fluxes, 'midpointMjdTai': mjds})
+
+    def test_all_below_threshold(self):
+        is_above, first_time, n = flux_threshold_features(
+            self._lc([1000, 2000, 3000], [59000.0, 59001.0, 59002.0]), _THRESHOLD
+        )
+        assert n == 0
+        assert is_above is False
+        assert first_time is False
+
+    def test_one_above_and_it_is_latest(self):
+        is_above, first_time, n = flux_threshold_features(
+            self._lc([1000, 2000, 6000], [59000.0, 59001.0, 59002.0]), _THRESHOLD
+        )
+        assert n == 1
+        assert is_above is True
+        assert first_time is True
+
+    def test_one_above_but_not_latest(self):
+        is_above, first_time, n = flux_threshold_features(
+            self._lc([6000, 2000, 3000], [59000.0, 59001.0, 59002.0]), _THRESHOLD
+        )
+        assert n == 1
+        assert is_above is True
+        assert first_time is False
+
+    def test_multiple_above_threshold(self):
+        is_above, first_time, n = flux_threshold_features(
+            self._lc([6000, 7000, 8000], [59000.0, 59001.0, 59002.0]), _THRESHOLD
+        )
+        assert n == 3
+        assert is_above is True
+        assert first_time is False
 
 
 def _write_alert_json(tmp_path, rows):

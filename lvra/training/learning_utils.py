@@ -78,7 +78,7 @@ def load_metrics(model_name, METRICS_DIR):
     if path.exists() is False:
         df = pd.DataFrame(columns = ['round',
                                      'accuracy',
-                                     'precision', 
+                                     'precision',
                                      'recall',
                                      'f1-score',
                                      'timestamp',
@@ -124,25 +124,39 @@ def resolve_model_name(cfg):
         LR = cfg['MODEL_PARAMS']['learning_rate']
     if 'max_iter' in cfg['MODEL_PARAMS'].keys():
         MaxI = cfg['MODEL_PARAMS']['max_iter']
-    try: 
+    try:
         SS = cfg['SAMPLING_STRATEGY']
     except KeyError:
-        SS = "UNK"    
+        SS = "UNK"
     name = f"{cfg['EXPERIMENT']}_LR{LR}_MaxI{MaxI}_RS{RS}_SS{SS}".replace('.',"p")
     return name
-    
+
 
 
 def make_training_sample(
     X_pool: pd.DataFrame,
     y_labels: pd.DataFrame,
     training_Ids: pd.DataFrame,
-    mapping: Optional[Dict[str, int]] = None
+    mapping: Optional[Dict] = None
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """
-    Build X_train and y_train from X_pool and y_labels using diaSourceId matching.
-    TODO:WRITE DOC STRING
-    """
+Build X_train and y_train from X_pool and y_labels using diaSourceId matching.
+
+Parameters
+----------
+X_pool : pandas.DataFrame
+    The dataset containing the features.
+y_labels : pandas.DataFrame
+    The labels for the dataset, must contain 'diaSourceId' or 'diaObjectId'.
+training_Ids : pandas.DataFrame
+    The DataFrame of training IDs to use for sampling.
+mapping : Optional[Dict], optional
+    A dictionary to map string labels to integer targets. Defaults to None, in which case a default mapping is used.
+Returns
+-------
+tuple[pandas.DataFrame, pandas.Series]
+    A tuple containing the feature set (X_train) and target vector (y_train).
+"""
     # minimal validation
     if not isinstance(X_pool, pd.DataFrame) \
     or not isinstance(y_labels, pd.DataFrame) \
@@ -174,13 +188,13 @@ def make_training_sample(
                        index mismatch may occur if trailing zeros were lost in \
                        a scientific notation conversion.")
         X_pool[key_col] = X_pool[key_col].astype(str)
-        
+
     if not pd.api.types.is_string_dtype(training_Ids[key_col]):
         logger.warning(f"Converting X_pool[{key_col}] to string but \
                        index mismatch may occur if trailing zeros were lost in \
                        a scientific notation conversion.")
         training_Ids[key_col] = training_Ids[key_col].astype(str)
-        
+
     # Build mapping
     if mapping is None:
         mapping = {'real': 1,
@@ -196,7 +210,7 @@ def make_training_sample(
     # before we do the mapping we extract label rows that correspond to training Ids
     mask_y = ysub[key_col].isin(training_Ids[key_col])
     ysub = ysub[mask_y]
-    
+
     # Map labels to ints
     try:
         ysub['target'] = ysub['label'].map(mapping)
@@ -230,7 +244,7 @@ def make_training_sample(
                         name='target',
                         dtype=int)
 
-    # Drop the key column from X_train (optional) — keep it for now since you might want both
+    # Drop the key column from X_train (optional) - keep it for now since you might want both
     # If you prefer to drop: X_train = X_train.drop(columns=[pool_key])
 
     return X_train, y_train
