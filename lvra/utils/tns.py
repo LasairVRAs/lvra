@@ -170,6 +170,7 @@ def make_tns_report_dictionary(diaObjectId, csv_dir, sqlitecursor, logger):
             "discovery_datetime": mjdToDateFraction(float(top_row['lastDiaSourceMjdTai'])),
             'reporter': REPORTER,
             'discovery_data_source_id': str(DATA_SOURCE_GROUPID),
+            'remarks': f"See object in Lasair: https://lasair.lsst.ac.uk/objects/{diaObjectId}",
             'non_detection': {'archiveid': "2"},   # 2 = DSS
             'photometry': {
                 '0': {
