@@ -90,7 +90,7 @@ kafka_consumer.py ─► JSON/YYYY/YYYYMMDD/<stem>.json
                        features.db:features  features.db:model_scores  Lasair
 ```
 
-- `lvra_feature_maker.py`: reads each new stem's JSON, computes features with the same semantics as `r0b-retraining/scripts/make_lc_feature_rows.py`, writes `features`. Reuses `json2cleandf` and `flux_threshold_features` from `lvra/utils/features.py`. `sherlock_*` columns come from the JSON (filter output).
+- `lvra_feature_maker.py`: reads each new stem's JSON, computes features with the same semantics as `r0b-retraining/scripts/make_lc_feature_rows.py`, writes `features`. We WILL NOT Rreuse `json2cleandf` but we can reuse `flux_threshold_features` from `lvra/utils/features.py`. `sherlock_*` columns come from the JSON (filter output).
 - `lvra_predict.py`: scores each stem's rows with every model present in the config (champion, plus challenger/retired when set), writes `model_scores`.
 - `lvra_annotator.py`: per object, latest scores + features → `classdict` → `L.annotate`.
 - Progress tracking: add an `lvra` status column to `log.db`'s `feature_making`, `predict`, `annotating` (same status codes as `r0b`: 1, -1, 21, 99).
@@ -124,3 +124,27 @@ kafka_consumer.py ─► JSON/YYYY/YYYYMMDD/<stem>.json
 ## Left to the builder
 
 File layout inside `lvra/` (new pypeline scripts vs shared utils), cron cadence (mirror r0b's), logging format (mirror r0b's), how `json2cleandf` output is extended to the ~150 features, test fixture layout.
+
+## Amendment 2026-10-20 (H's decisions, supersedes the items above where they conflict)
+
+Found while planning: the champion was trained on `PAPER_DATA_PRODUCTS/csv/data_labels.csv`, which is
+made by H's notebook `PAPER_DATA_PRODUCTS/Clean Data and Make Features.ipynb`
+(`CleanDataAndMakeFeatures`), **not** by `scripts/make_lc_feature_rows.py`. The two differ.
+
+- **Feature reference** = the notebook, after the changes below are made in r0b-retraining and the
+  champion is retrained. Prod ports the notebook functions; parity is checked against the regenerated
+  `data_labels.csv`.
+- **Threshold flags** mean "ever above" (`lvra.utils.features.flux_threshold_features` semantics), not
+  "latest point above". Notebook to be changed; analysis re-run.
+- **Reliability cut** (R > 0.5) to be applied to `median_flux_*`, `max_flux` and `n_det_*`, plus a new
+  feature counting detections below the cut. Changed in the notebook.
+- **`rise_rate_{b}`**: as in the notebook (detections, `(last − first) / Δt` per band). Forced
+  photometry is not needed; open item 2 is closed.
+- **`delta_days_TOTAL`**: as in the notebook (latest − `discovery_mjd`, not an int).
+- **`medianR_last5`**: NaN when fewer than 5 detections (as in the notebook).
+- `band` is fed to the model as `pd.Categorical(categories=["u","g","r","i","z","y"])` (the champion
+  uses `categorical_features="from_dtype"`).
+- `json2cleandf` is not reused: it keeps only the latest source, while the features need the whole
+  `diaSourcesList`. `flux_threshold_features` and `mag_to_njy_thresholds` are reused.
+- "`distance`, `absMag`, `absMagMJD` fed as NaN" no longer applies (they are not notebook features).
+- Classes: `gal` is merged into `real` at training, so the model outputs agn, bogus, extragal, mover, real.
