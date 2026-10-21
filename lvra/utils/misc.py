@@ -1,3 +1,9 @@
+"""Miscellaneous utility functions
+Oversight: High to Total
+Accountable: Heloise
+
+"""
+
 import hashlib
 import os
 from pathlib import Path
@@ -104,9 +110,41 @@ def read_model_config(path, logger):
     return model_conf_dict, status_code
 
 
+def read_lvra_config(path, logger):
+    """Reads the lvra yaml files with the config set up
+    
+    Written by claude, reviewed by heloise
+    """
+
+    # When we moe to python 3.15 we can use a lazy import
+    # instead of importing in the function: https://peps.python.org/pep-0810/
+    from lvra.utils.feature_store import MODEL_ROLES
+
+    lvra_conf_dict = None
+    try:
+        with path.open("r") as conf_file:
+            config = yaml.safe_load(conf_file)
+        lvra_conf_dict = {'TOPIC_OUT': config['TOPIC_OUT'],
+                          'EXPLANATION': config['EXPLANATION'],
+                          'URL': config['URL'],
+                          'MODELS': {role: config['MODELS'][role] for role in MODEL_ROLES} # champion, challenger, retired
+                          }
+        
+        logger.info("[LVRA CONFIG] Successfully Loaded ")
+        status_code = 0
+    except FileNotFoundError as e:
+        logger.error(f"[LVRA CONFIG] {e}")
+        status_code = 21
+    except Exception as e:
+        logger.error(f"[LVRA CONFIG] Failed to load {path} | {e}")
+        status_code = 99
+
+    return lvra_conf_dict, status_code
+
 
 def sha256_of_file(path, chunk_size=8192):
     "Computes the SHA256 hash of a file"
+    # TODO: 2026-10-21 - Heloise: I think this is deprecated. look into that during Big Refactor
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(chunk_size), b""):
@@ -150,6 +188,9 @@ def check_pckg_versions(env_file : Path = LVRA_ENV_FILE,
     if not p.exists():
         raise FileNotFoundError(f"{p} does not exist")
 
+    # When we moe to python 3.15 we can use a lazy import
+    # instead of importing in the function: https://peps.python.org/pep-0810/
+    # TODO: Look at lazy imports during Big Refactor
     import pandas
     import sklearn
     import numpy
