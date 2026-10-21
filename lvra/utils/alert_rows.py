@@ -1,7 +1,11 @@
-# Making feature rows for each alerts in our JSON file from our Kafka stream
-# Written by Claude based on specs written with Heloise. Reviewed and commented by Heloise
-# Oversight Level: High. 
-# Accountable: Heloise.
+"""
+Making feature rows for each alerts in our JSON file from our Kafka stream
+
+Oversight: High. 
+Accountable: Heloise.
+
+Written by Claude based on specs written with Heloise. Reviewed and commented by Heloise
+"""
 
 import json
 from pathlib import Path

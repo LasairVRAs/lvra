@@ -1,7 +1,11 @@
-# Light Curve Features Functions
-# Written by CLaude based on Heloise's code.Reviewed by Heloise
-# Oversight Level: High. 
-# Accountable: Heloise.
+"""
+Light Curve Features Functions
+
+Oversight: High. 
+Accountable: Heloise.
+
+Written by CLaude based on Heloise's code.Reviewed by Heloise
+"""
 
 import numpy as np
 import pandas as pd
