@@ -1,6 +1,8 @@
 """
 Name: r0b_feature_maker.py
 Author: H.F.Stevance (hfstevance@gmail.com | GitHub: HeloiseS)
+Oversight: TOTAL 
+
 Description: When run as a script, calls the main function which
 * 1) Reads the config file located in environment variable LVRA_SETTINGS or, if not defined
 looks for the "public_seetings.yaml" file located in ../../../data/
