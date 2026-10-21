@@ -618,11 +618,9 @@ def test_machine_learning_confidence():
 # Claude wrote this for LVRA v2 (2026-10-21)
 from pathlib import Path
 
-from sklearn.ensemble import HistGradientBoostingClassifier
-
 from lvra.utils.alert_rows import FEATURE_NAMES, json_to_feature_rows
 from lvra.utils.feature_store import connect, insert_features, read_features
-from test.helpers import initialise_features_db
+from test.helpers import fit_tiny_hgb, initialise_features_db
 
 PARITY_JSON = Path(__file__).resolve().parent / "fixtures" / "parity" / "20260711_084501_trimmed.json"
 CLASSES = ["agn", "bogus", "extragal", "mover", "real"]
@@ -636,11 +634,7 @@ def parity_rows():
 
 @pytest.fixture(scope="module")
 def tiny_hgb(parity_rows):
-    train = parity_rows.sample(50, replace=True, random_state=0).reset_index(drop=True)
-    X = train[FEATURE_NAMES].astype({n: "category" if n in CATEGORICALS else float for n in FEATURE_NAMES})
-    X["psfflux"] += np.random.default_rng(0).normal(0, 1000, len(X))
-    y = CLASSES * 10
-    return HistGradientBoostingClassifier(max_iter=5, min_samples_leaf=1, random_state=0).fit(X, y)
+    return fit_tiny_hgb(parity_rows, FEATURE_NAMES)
 
 
 def test_to_model_input_dtypes_come_from_model(parity_rows, tiny_hgb):

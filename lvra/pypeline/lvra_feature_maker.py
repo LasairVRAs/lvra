@@ -1,5 +1,5 @@
 """Make features for the LVRA models. Runs as a stand alone script or can be used as a module. 
-Oversight:
+Oversight: High
 Accountable: Heloise
 
 Written by Claude, based on r0b_feature_maker.py and our specs. Reviewed and commented by Heloise
@@ -49,7 +49,7 @@ def stemlist_from_logdb(sqlite_cursor, logger):
 def make_features(input_path: Path, features_con, stem: str, logger) -> int:
     """
     Takes the path to a json file, extracts the features and puts them in the features data base.
-    
+
     Parameters
     ----------
     input_path: Path
