@@ -16,6 +16,20 @@ data is shared so it adds a layer without adding functionality.
 
 Removed `con.executescript(schema_path.read_text(encoding="utf-8"))` in `connect()`
 and updated the .connect() step to raise an error if the database doesn't exist.
+
+On WAL mode and not locking the db. I thought this was superfluous because
+I have lock file mechansisms in bigbashboy, however these are stage specific, so i cna't have 
+two annotators runnign concurently for example, but I very well could have an annotator from 
+a previous cycle running whilst the feature maker of the next cycle is starting. WAL mode 
+ensures my feature maker can write to the table whilst allowing the annotator to read what's
+already been done. 
+
+NOTE: WAL only allows one writer at a time. The write transactions are pretty small so 
+we should be fine to wait. 
+
+My current pipeline can't result in deadlocks because it's not circular, it's linear. 
+I'm happy with this for now, although the lenght of the cycles may need to be refined as 
+more alerts come through.
 """
 
 import sqlite3
@@ -55,8 +69,6 @@ def connect(db_path: Path) -> sqlite3.Connection:
     # features.db file that the reads will happen on. 
     # If we have a lot of alerts coming we might have a case where the feature_makre is writing
     # whilst the predictor or annotator from the previous cycle is reading. 
-    # (Although in practice I believe some of my other lock mechanisms in bigbashboy.sh would 
-    # prevent this from happening)
     con.execute("PRAGMA journal_mode = WAL")
 
     # By default sqlite doesn't care about foreig keys. Here we're asking to care
