@@ -109,6 +109,7 @@ kafka_consumer.py ─► JSON/YYYY/YYYYMMDD/<stem>.json
 1. **Annotator topic name.**
 2. **Example JSON with forced photometry** (H to supply). Decided: `rise_rate_{b}` stays on forced photometry as trained (`make_lc_feature_rows.py:382`–`385`); low importance and forced photometry should now be in every alert.
 3. **Public feature list**: confirm names and band coverage in the README draft.
+   - *Decided 2026-10-21 (H):* `n_gtXX`, `everbrighterXX` (renamed from r0b's `brighterXX`: "brighter" read as "brighter now"), `firstXX` for XX = 18–23; `n_loR_sources`, `n_hiR_sources` (R stays upper case); `max_flux`, `delta_days_since_max`, `delta_days_to_max`, `delta_days_total` (lower case); `current_snr`; `n_det_{b}`, `n_det_snr10_{b}` for b = u, g, r, i, z, y. r0b filters are unaffected (r0b keeps annotating `r0b_lvra` with its old names). Latest alert per object = latest stem, then max `delta_days_TOTAL` within a stem (same `firstDiaSourceMjdTai`).
 4. **Disk**: run `df -h $LVRA_DATA_ROOT` on prod to confirm ~45 GB headroom.
 
 ## My calls (Claude's; H to check)

@@ -85,8 +85,6 @@ def score_stem(features_con, stem, slots, logger):
     """
 
     # 1. Get the features from the database using .utils.feature_store.read_features
-    # NOTE: Not sure if there is any reason to allow read_features to handle a list of stems
-    # if we only ever pass one at a time. To look at again
     features_df = read_features(features_con, [stem])
 
 
