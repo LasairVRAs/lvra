@@ -48,6 +48,9 @@ docs = ["sphinx==7.4.7", "sphinx_rtd_theme==3.0.2"]
 
 [tool.setuptools]
 packages = ["lvra", ]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
                                                                                                                              
 # ... other project metadata fields as specified in:                                                                         
 #     https://packaging.python.org/en/latest/specifications/declaring-project-metadata/ 
