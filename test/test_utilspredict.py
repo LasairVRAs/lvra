@@ -12,6 +12,14 @@ import numpy as np
 
 from lvra.utils import predict
 
+# Claude wrote this for LVRA v2 (2026-10-21)
+from pathlib import Path
+
+from lvra.utils.alert_rows import FEATURE_NAMES, json_to_feature_rows
+from lvra.utils.feature_store import connect, insert_features, read_features
+from test.helpers import fit_tiny_hgb, initialise_features_db
+
+
 
 # #-#-#-#-#-#-#-# #
 #     FIXTURES     #
@@ -615,13 +623,7 @@ def test_machine_learning_confidence():
     assert confidence == 1.0  # At least THIS prediction is deterministic!
 
 
-# Claude wrote this for LVRA v2 (2026-10-21)
-from pathlib import Path
-
-from lvra.utils.alert_rows import FEATURE_NAMES, json_to_feature_rows
-from lvra.utils.feature_store import connect, insert_features, read_features
-from test.helpers import fit_tiny_hgb, initialise_features_db
-
+### ADDED BY CLAUDE 
 PARITY_JSON = Path(__file__).resolve().parent / "fixtures" / "parity" / "20260711_084501_trimmed.json"
 CLASSES = ["agn", "bogus", "extragal", "mover", "real"]
 CATEGORICALS = ("band", "best_distance_flag")
