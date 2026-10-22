@@ -1,4 +1,5 @@
 # Claude wrote this for LVRA v2 (2026-10-21)
+# H: that seems excessive but whatever
 import sqlite3
 from pathlib import Path
 
