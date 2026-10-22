@@ -1,11 +1,9 @@
-# Claude wrote this for LVRA v2 (2026-10-21)
-# Heloise reviewed and edited 
 TOPIC_OUT: LVRA
 EXPLANATION: LVRA 
 URL: https://lasairvras.github.io/lvra-doc/
 MODELS:
   champion:
-    PATH: /home/lasair/data/lvra/models/lvra_<version>.joblib
+    PATH: /home/lasair/data/lvra/models/lvra_0p1.joblib
     VERSION: "0.1"
   challenger: null
   retired: null
