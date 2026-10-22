@@ -123,6 +123,7 @@ def test_main_updates_feature_making_status(monkeypatch, tmp_path):
     # and csv_dir.parent == tmp_path/"csvroot"
     fake_setup = {
         "log_db": dbfile,
+        "base_dir": tmp_path,  # Claude added for issue #96 (2026-10-22)
         "json_dir": json_date_dir / "placeholder",  # parent == tmp_path/"jsonroot"
         "csv_dir": csv_date_dir / "placeholder"
     }
@@ -157,6 +158,7 @@ def test_main_updates_feature_making_status_for_partial_success(monkeypatch, tmp
 
     fake_setup = {
         "log_db": dbfile,
+        "base_dir": tmp_path,  # Claude added for issue #96 (2026-10-22)
         "json_dir": json_date_dir / "placeholder",
         "csv_dir": csv_date_dir / "placeholder",
     }
@@ -185,6 +187,7 @@ def test_main_records_missing_json_status_code(monkeypatch, tmp_path):
 
     fake_setup = {
         "log_db": dbfile,
+        "base_dir": tmp_path,  # Claude added for issue #96 (2026-10-22)
         "json_dir": tmp_path / "jsonroot" / stem[:8] / "placeholder",
         "csv_dir": tmp_path / "csvroot" / stem[:8] / "placeholder",
     }
@@ -378,3 +381,41 @@ def test_make_features_with_real_json(tmp_path, monkeypatch):
         rc = fm_module.make_features(input_path=Path("/nonexistent.json"), output_path=out_csv, logger=logger)
         assert rc == -1
         assert out_csv.exists()
+
+
+# Claude wrote this for issue #96 (2026-10-22)
+def test_main_uses_year_from_stem_across_new_year(monkeypatch, tmp_path):
+    dbfile = str(tmp_path / "fm_new_year.db")
+    con, cur = _create_db(dbfile)
+
+    stem = "20251231_235900"
+    cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", (stem, 0))
+    con.commit()
+    con.close()
+
+    base_dir = tmp_path / "data"
+    fake_setup = {
+        "log_db": dbfile,
+        "base_dir": base_dir,
+        "json_dir": base_dir / "JSON" / "2026" / "20260101",
+        "csv_dir": base_dir / "csv" / "2026" / "20260101",
+    }
+    monkeypatch.setattr(fm_module, "set_up", lambda settings_path, log_name, logger: fake_setup)
+
+    seen = []
+    def fake_json2cleandf(path):
+        seen.append(Path(path))
+        return _sample_clean_df(), []
+    monkeypatch.setattr(fm_module, "json2cleandf", fake_json2cleandf)
+
+    ret = fm_module.main()
+    assert ret == 0
+
+    assert seen == [base_dir / "JSON" / "2025" / "20251231" / f"{stem}.json"]
+    assert (base_dir / "csv" / "2025" / "20251231" / f"{stem}.csv").exists()
+
+    con = sqlite3.connect(dbfile)
+    cur = con.cursor()
+    cur.execute("SELECT r0b FROM feature_making WHERE stem = ?;", (stem,))
+    assert cur.fetchone()[0] == 1
+    con.close()

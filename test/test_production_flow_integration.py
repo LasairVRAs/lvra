@@ -80,7 +80,7 @@ def test_local_runtime_flow_from_kafka_to_annotation(monkeypatch, tmp_path, log_
     date = stem[:8]
     json_root = tmp_path / "JSON"
     csv_root = tmp_path / "csv"
-    kafka_json_dir = json_root / date
+    kafka_json_dir = json_root / stem[:4] / date  # Claude changed for issue #96 (2026-10-22)
     kafka_json_dir.mkdir(parents=True)
     csv_root.mkdir(parents=True)
 
@@ -89,6 +89,7 @@ def test_local_runtime_flow_from_kafka_to_annotation(monkeypatch, tmp_path, log_
         "group_id": "pytest",
         "my_topic": "lvra-test",
         "log_db": log_db_path,
+        "base_dir": tmp_path,  # Claude added for issue #96 (2026-10-22)
         "endpoint": "https://example.invalid/api",
     }
     kafka_setup = {

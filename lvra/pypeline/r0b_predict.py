@@ -163,7 +163,8 @@ def main():
         # LOAD DATA
         logger.info(f"[PREDICT] START - stem={stem}")
         try:
-            _df = pd.read_csv((setup_dict['csv_dir'].parent / stem[:8] / stem).with_suffix('.csv'))
+            # Claude wrote this for issue #96 (2026-10-22)
+            _df = pd.read_csv(setup_dict['base_dir'] / "csv" / stem[:4] / stem[:8] / f"{stem}.csv")
         except FileNotFoundError:
             logger.error(f"[PREDICT] FAIL - stem={stem} reason=Feature file not found")
             sql = "UPDATE predict SET timestamp=current_timestamp, r0b = ? WHERE stem = ?;" 

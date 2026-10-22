@@ -150,6 +150,7 @@ def test_main_missing_csv_continues_and_no_provenance_inserted(monkeypatch, tmp_
     # set_up to point to db and a csv_dir where file does NOT exist
     monkeypatch.setattr(predict_module, "set_up", lambda settings_path, log_name, logger: {
         "log_db": dbfile,
+        "base_dir": tmp_path,  # Claude added for issue #96 (2026-10-22)
         "csv_dir": Path(tmp_path) / "csvs"
     })
     monkeypatch.setattr(predict_module, "read_model_config", lambda path, logger: ({"MODEL_NAME": "r0b", "MODEL_VERSION": "v1", "MODEL_PATH": str(tmp_path / "model.joblib")}, 0))
@@ -183,7 +184,7 @@ def test_main_records_predict_failure_without_writing_provenance(monkeypatch, tm
     con.commit()
     con.close()
 
-    csv_parent = tmp_path / "csvroot" / stem[:8]
+    csv_parent = tmp_path / "csv" / stem[:4] / stem[:8]  # Claude changed for issue #96 (2026-10-22)
     csv_parent.mkdir(parents=True)
     pd.DataFrame({
         "diaObjectId": [1000],
@@ -193,6 +194,7 @@ def test_main_records_predict_failure_without_writing_provenance(monkeypatch, tm
 
     monkeypatch.setattr(predict_module, "set_up", lambda settings_path, log_name, logger: {
         "log_db": dbfile,
+        "base_dir": tmp_path,  # Claude added for issue #96 (2026-10-22)
         "csv_dir": csv_parent.parent / "placeholder"
     })
     monkeypatch.setattr(predict_module, "read_model_config", lambda path, logger: ({
@@ -230,7 +232,7 @@ def test_main_full_flow_calls_predict_and_writes_provenance(monkeypatch, tmp_pat
     # Create csv_dir structure matching code: csv_dir.parent / stem[:8] / stem.csv
     # We want the final path (csv_dir.parent / stem[:8] / stem).with_suffix('.csv')
     # to equal tmp_path/"csvroot"/stem[:8]/f"{stem}.csv"
-    csv_parent = tmp_path / "csvroot" / (stem[:8])   # <-- this is where we will write the file
+    csv_parent = tmp_path / "csv" / stem[:4] / stem[:8]   # <-- this is where we will write the file  (Claude changed for issue #96, 2026-10-22)
     csv_parent.mkdir(parents=True)
     csv_file = csv_parent / f"{stem}.csv"
     # write CSV that the code will read (any minimal dataframe with required columns)
@@ -248,6 +250,7 @@ def test_main_full_flow_calls_predict_and_writes_provenance(monkeypatch, tmp_pat
     # Mock set_up/read_model_config
     monkeypatch.setattr(predict_module, "set_up", lambda settings_path, log_name, logger: {
         "log_db": dbfile,
+        "base_dir": tmp_path,  # Claude added for issue #96 (2026-10-22)
         "csv_dir": csv_dir_for_set_up
     })
     monkeypatch.setattr(predict_module, "read_model_config", lambda path, logger: ({
@@ -281,4 +284,44 @@ def test_main_full_flow_calls_predict_and_writes_provenance(monkeypatch, tmp_pat
         (1000, 2000, stem, 0.12),
         (1001, 2001, stem, 0.99),
     ]
+    con2.close()
+
+
+# Claude wrote this for issue #96 (2026-10-22)
+def test_main_uses_year_from_stem_across_new_year(monkeypatch, tmp_path):
+    dbfile = str(tmp_path / "new_year.db")
+    con, cur = _create_db(dbfile)
+
+    stem = "20251231_235900"
+    cur.execute("INSERT INTO predict (stem, r0b) VALUES (?, ?);", (stem, 0))
+    cur.execute("INSERT INTO feature_making (stem, r0b) VALUES (?, ?);", (stem, 1))
+    con.commit()
+    con.close()
+
+    base_dir = tmp_path / "data"
+    csv_file = base_dir / "csv" / "2025" / "20251231" / f"{stem}.csv"
+    csv_file.parent.mkdir(parents=True)
+    pd.DataFrame({"diaObjectId": [1000], "diaSourceId": [2000], "featureA": [1.0]}).to_csv(csv_file, index=False)
+
+    monkeypatch.setattr(predict_module, "set_up", lambda settings_path, log_name, logger: {
+        "log_db": dbfile,
+        "base_dir": base_dir,
+        "csv_dir": base_dir / "csv" / "2026" / "20260101",
+    })
+    monkeypatch.setattr(predict_module, "read_model_config", lambda path, logger: ({
+        "MODEL_NAME": "r0b",
+        "MODEL_VERSION": "v1",
+        "MODEL_PATH": str(tmp_path / "model.joblib")
+    }, 0))
+    monkeypatch.setattr(joblib, "load", lambda p: object())
+    monkeypatch.setattr(predict_module, "predict", lambda df, model, logger: (
+        pd.DataFrame({"diaObjectId": [1000], "diaSourceId": [2000], "score": [0.5]}), 0))
+
+    ret = predict_module.main()
+    assert ret == 0
+
+    con2 = sqlite3.connect(dbfile)
+    cur2 = con2.cursor()
+    cur2.execute("SELECT diaObjectId, diaSourceId, stem, score FROM provenance;")
+    assert cur2.fetchall() == [(1000, 2000, stem, 0.5)]
     con2.close()
