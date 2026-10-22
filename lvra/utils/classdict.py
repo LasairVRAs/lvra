@@ -17,11 +17,11 @@ BANDS = "ugrizy"
 # Mapping between the public names and the column names in my data. 
 # in later versions I could just fix the sodding column names
 PUBLIC_FEATURES = {
-    **{f"n_gt{t}": f"N_brighter_{t}" for t in THRESHOLDS},
-    **{f"everbrighter{t}": f"ever_brighter_{t}" for t in THRESHOLDS},
-    **{f"first{t}": f"first_brighter_{t}" for t in THRESHOLDS},
     "n_loR_sources": "n_loR_sources",
     "n_hiR_sources": "n_hiR_sources",
+    **{f"n_gt{t}": f"N_brighter_{t}" for t in THRESHOLDS},
+    **{f"ever_gt{t}": f"ever_brighter_{t}" for t in THRESHOLDS},
+    **{f"first_gt{t}": f"first_brighter_{t}" for t in THRESHOLDS},
     "max_flux": "max_flux",
     "delta_days_since_max": "delta_days_since_max",
     "delta_days_to_max": "delta_days_to_max",

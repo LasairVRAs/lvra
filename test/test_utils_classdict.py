@@ -46,9 +46,11 @@ def test_empty_slots_null_and_gal_absent(full_features):
 
 def test_public_feature_names(full_features):
     d = build_classdict(full_features, ONE_SLOT)
-    assert {"n_gt23", "everbrighter22", "first18", "n_det_y", "delta_days_total", "n_loR_sources"} <= set(d)
+    assert {"n_gt23", "ever_gt22", "first_gt18", "n_det_y", "delta_days_total", "n_loR_sources"} <= set(d)
     assert set(d) == {"blame_diaSourceId", "champion", "challenger", "retired"} | set(PUBLIC_FEATURES)
     assert d["blame_diaSourceId"] == full_features["diaSourceId"]
+    # Claude wrote this for the classdict renames (2026-10-22)
+    assert list(d)[:7] == ["blame_diaSourceId", "champion", "challenger", "retired", "n_loR_sources", "n_hiR_sources", "n_gt18"]
 
 
 def test_numbers_rounded_and_python_types(full_features):
@@ -56,5 +58,5 @@ def test_numbers_rounded_and_python_types(full_features):
     d = build_classdict(features, ONE_SLOT)
     assert d["max_flux"] == 1234.57
     assert d["n_det_g"] == 3 and type(d["n_det_g"]) is int
-    assert d["everbrighter22"] is True
+    assert d["ever_gt22"] is True
     assert d["champion"]["extragal"] == 0.123457 and d["champion"]["mover"] == 1.23457e-05

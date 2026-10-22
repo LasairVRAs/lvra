@@ -62,7 +62,7 @@ it, and tests prove the numbers match the training features.
     "...": "remaining public features at top level"
   }
   ```
-- Threshold features keep **r0b's names** (`n_gtXX`, `brighterXX`, `firstXX`) for backwards compatibility with existing filters such as `JSON_EXTRACT(r0b_lvra.classdict, "$.first22")`. They are the same quantities as the training CSV's `N_above_XX`, `is_above_XX`, `first_time_XX` (both follow `lvra.utils.features.flux_threshold_features`).
+- *(Names superseded — see Open item 3, 2026-10-21 and 2026-10-22.)* Threshold features keep **r0b's names** (`n_gtXX`, `brighterXX`, `firstXX`) for backwards compatibility with existing filters such as `JSON_EXTRACT(r0b_lvra.classdict, "$.first22")`. They are the same quantities as the training CSV's `N_above_XX`, `is_above_XX`, `first_time_XX` (both follow `lvra.utils.features.flux_threshold_features`).
 - Public features (draft, H to confirm in the README):
   - `n_gtXX`, `brighterXX`, `firstXX` for XX ∈ {18, 19, 20, 21, 22}
   - `n_loR_sources`, `n_hiR_sources`
@@ -110,6 +110,7 @@ kafka_consumer.py ─► JSON/YYYY/YYYYMMDD/<stem>.json
 2. **Example JSON with forced photometry** (H to supply). Decided: `rise_rate_{b}` stays on forced photometry as trained (`make_lc_feature_rows.py:382`–`385`); low importance and forced photometry should now be in every alert.
 3. **Public feature list**: confirm names and band coverage in the README draft.
    - *Decided 2026-10-21 (H):* `n_gtXX`, `everbrighterXX` (renamed from r0b's `brighterXX`: "brighter" read as "brighter now"), `firstXX` for XX = 18–23; `n_loR_sources`, `n_hiR_sources` (R stays upper case); `max_flux`, `delta_days_since_max`, `delta_days_to_max`, `delta_days_total` (lower case); `current_snr`; `n_det_{b}`, `n_det_snr10_{b}` for b = u, g, r, i, z, y. r0b filters are unaffected (r0b keeps annotating `r0b_lvra` with its old names). Latest alert per object = latest stem, then max `delta_days_TOTAL` within a stem (same `firstDiaSourceMjdTai`).
+   - *Amended 2026-10-22 (H), after inspecting real classdicts from the dev dry run:* threshold names made consistent and short (no autocomplete on JSON fields): `n_gtXX`, `ever_gtXX` (was `everbrighterXX`), `first_gtXX` (was `firstXX`). `n_loR_sources` and `n_hiR_sources` now come straight after the model slots (`retired`), before `n_gt18`, because every field after them is computed on hiR sources only. Classdict order: `blame_diaSourceId`, `champion`, `challenger`, `retired`, `n_loR_sources`, `n_hiR_sources`, threshold features, then the rest.
 4. **Disk**: run `df -h $LVRA_DATA_ROOT` on prod to confirm ~45 GB headroom.
 
 ## My calls (Claude's; H to check)
