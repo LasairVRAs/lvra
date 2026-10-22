@@ -27,6 +27,9 @@ KAFKA="$BASHBASE/kafka.sh"
 R0BFEATURES="$BASHBASE/r0b_feature_maker.sh"
 PREDICT="$BASHBASE/r0b_predict.sh"
 ANNOT="$BASHBASE/r0b_annotator.sh"
+LVRAFEATURES="$BASHBASE/lvra_feature_maker.sh"
+LVRAPREDICT="$BASHBASE/lvra_predict.sh"
+LVRAANNOT="$BASHBASE/lvra_annotator.sh"
 
 ### Set up Logging
 DATE=$(date +"%Y%m%d")
@@ -62,6 +65,19 @@ if [ ! -f "$PREDICT" ]; then
 fi
 if [ ! -f "$ANNOT" ]; then
     echo "$(date -Iseconds) [LVRA PIPELINE ERR] Annotator script not found at $ANNOT. Exiting." >> $LOGFILE
+    exit 1
+fi
+
+if [ ! -f "$LVRAFEATURES" ]; then
+    echo "$(date -Iseconds) [LVRA PIPELINE ERR] lvra Features script not found at $LVRAFEATURES. Exiting." >> $LOGFILE
+    exit 1
+fi
+if [ ! -f "$LVRAPREDICT" ]; then
+    echo "$(date -Iseconds) [LVRA PIPELINE ERR] lvra Predict script not found at $LVRAPREDICT. Exiting." >> $LOGFILE
+    exit 1
+fi
+if [ ! -f "$LVRAANNOT" ]; then
+    echo "$(date -Iseconds) [LVRA PIPELINE ERR] lvra Annotator script not found at $LVRAANNOT. Exiting." >> $LOGFILE
     exit 1
 fi
 
@@ -159,6 +175,70 @@ else
   flock -u 12
 fi
 exec 12>&-
+
+# Claude wrote this for LVRA v2 (2026-10-21)
+# Oversight: Low
+# Accontable: Heloise
+# I assumed it just copied what I have written above
+# ------ LVRA FEATURES ------- #
+# (fd 13)
+exec 13>"$LOCKBASE/lvrafeatures.lock"
+if ! flock -n 13 ; then
+  echo "$(date -Iseconds) [LVRA PIPELINE] ooo SKIP lvra features: lock held" >> "$LOGFILE"
+else
+  echo "$(date -Iseconds) [LVRA PIPELINE] +++ START lvra features " >> "$LOGFILE"
+
+  "$LVRAFEATURES"
+
+  rc=$?
+  if [ $rc -eq 0 ]; then
+    echo "$(date -Iseconds) [LVRA PIPELINE] +++ DONE lvra features " >> "$LOGFILE"
+  else
+    echo "$(date -Iseconds) [LVRA PIPELINE] xxx FAIL lvra features: exit $rc" >> "$LOGFILE"
+  fi
+  flock -u 13
+fi
+exec 13>&-
+
+# ------ LVRA PREDICT ------- #
+# (fd 14)
+exec 14>"$LOCKBASE/lvrapredict.lock"
+if ! flock -n 14 ; then
+  echo "$(date -Iseconds) [LVRA PIPELINE] ooo SKIP lvra predict: lock held" >> "$LOGFILE"
+else
+  echo "$(date -Iseconds) [LVRA PIPELINE] +++ START lvra predict " >> "$LOGFILE"
+
+  "$LVRAPREDICT"
+
+  rc=$?
+  if [ $rc -eq 0 ]; then
+    echo "$(date -Iseconds) [LVRA PIPELINE] +++ DONE lvra predict " >> "$LOGFILE"
+  else
+    echo "$(date -Iseconds) [LVRA PIPELINE] xxx FAIL lvra predict: exit $rc" >> "$LOGFILE"
+  fi
+  flock -u 14
+fi
+exec 14>&-
+
+# ------ LVRA ANNOTATE ------- #
+# (fd 15)
+exec 15>"$LOCKBASE/lvraannotate.lock"
+if ! flock -n 15 ; then
+  echo "$(date -Iseconds) [LVRA PIPELINE] ooo SKIP lvra annotate: lock held" >> "$LOGFILE"
+else
+  echo "$(date -Iseconds) [LVRA PIPELINE] +++ START lvra annotate " >> "$LOGFILE"
+
+  "$LVRAANNOT"
+
+  rc=$?
+  if [ $rc -eq 0 ]; then
+    echo "$(date -Iseconds) [LVRA PIPELINE] +++ DONE lvra annotate " >> "$LOGFILE"
+  else
+    echo "$(date -Iseconds) [LVRA PIPELINE] xxx FAIL lvra annotate: exit $rc" >> "$LOGFILE"
+  fi
+  flock -u 15
+fi
+exec 15>&-
 
 # ------ EXIT NICELY ------- #
 echo "$(date -Iseconds) [LVRA PIPELINE] ------  DONE ------ " >> "$LOGFILE"

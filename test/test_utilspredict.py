@@ -12,6 +12,14 @@ import numpy as np
 
 from lvra.utils import predict
 
+# Claude wrote this for LVRA v2 (2026-10-21)
+from pathlib import Path
+
+from lvra.utils.alert_rows import FEATURE_NAMES, json_to_feature_rows
+from lvra.utils.feature_store import connect, insert_features, read_features
+from test.helpers import fit_tiny_hgb, initialise_features_db
+
+
 
 # #-#-#-#-#-#-#-# #
 #     FIXTURES     #
@@ -613,3 +621,60 @@ def test_machine_learning_confidence():
     """
     confidence = 1.0
     assert confidence == 1.0  # At least THIS prediction is deterministic!
+
+
+### ADDED BY CLAUDE 
+PARITY_JSON = Path(__file__).resolve().parent / "fixtures" / "parity" / "20260711_084501_trimmed.json"
+CLASSES = ["agn", "bogus", "extragal", "mover", "real"]
+CATEGORICALS = ("band", "best_distance_flag")
+
+
+@pytest.fixture(scope="module")
+def parity_rows():
+    return json_to_feature_rows(PARITY_JSON)[0]
+
+
+@pytest.fixture(scope="module")
+def tiny_hgb(parity_rows):
+    return fit_tiny_hgb(parity_rows, FEATURE_NAMES)
+
+
+def test_to_model_input_dtypes_come_from_model(parity_rows, tiny_hgb):
+    X = predict.to_model_input(parity_rows, tiny_hgb)
+    assert list(X.columns) == list(tiny_hgb.feature_names_in_)
+    for col in X.columns:
+        assert X[col].dtype == ("category" if col in CATEGORICALS else "float64"), col
+
+
+def test_predict_multiclass_columns_are_classes(parity_rows, tiny_hgb):
+    scores, status = predict.predict_multiclass(parity_rows, tiny_hgb, Mock())
+    assert status == 0
+    assert list(scores.columns) == ["diaObjectId", "diaSourceId"] + CLASSES
+    assert np.allclose(scores[CLASSES].sum(axis=1), 1)
+
+
+def test_predict_multiclass_missing_feature_31(parity_rows, tiny_hgb):
+    assert predict.predict_multiclass(parity_rows.drop(columns="psfflux"), tiny_hgb, Mock()) == (None, 31)
+
+
+def test_predict_multiclass_non_dataframe_23(tiny_hgb):
+    assert predict.predict_multiclass([1, 2, 3], tiny_hgb, Mock()) == (None, 23)
+
+
+def test_unseen_category_scores_as_missing(parity_rows, tiny_hgb):
+    unseen = parity_rows.assign(best_distance_flag="dd")
+    missing = parity_rows.assign(best_distance_flag=None)
+    a, _ = predict.predict_multiclass(unseen, tiny_hgb, Mock())
+    b, _ = predict.predict_multiclass(missing, tiny_hgb, Mock())
+    assert np.allclose(a[CLASSES], b[CLASSES])
+
+
+def test_scores_equal_after_features_db_roundtrip(tmp_path, parity_rows, tiny_hgb):
+    direct, _ = predict.predict_multiclass(parity_rows, tiny_hgb, Mock())
+    con = connect(initialise_features_db(tmp_path / "features.db"))
+    insert_features(con, parity_rows, "s")
+    via_db, _ = predict.predict_multiclass(read_features(con, ["s"]), tiny_hgb, Mock())
+    direct = direct.sort_values("diaSourceId").reset_index(drop=True)
+    via_db = via_db.sort_values("diaSourceId").reset_index(drop=True)
+    assert (direct.diaSourceId == via_db.diaSourceId).all()
+    assert np.allclose(direct[CLASSES], via_db[CLASSES], rtol=0, atol=1e-12)

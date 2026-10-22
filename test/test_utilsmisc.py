@@ -553,3 +553,49 @@ class TestCheckPckgVersions:
         bad_path = Path("/non/existent/path/lvra_env.yaml")
         with pytest.raises(FileNotFoundError):
             check_pckg_versions(env_file=bad_path)
+
+# Claude wrote this for LVRA v2 (2026-10-21)
+@pytest.fixture
+def valid_lvra_config():
+    return {
+        'TOPIC_OUT': 'lvradev',
+        'EXPLANATION': 'LVRA multiclass classifier',
+        'URL': 'https://lasairvras.github.io/lvra-doc/',
+        'MODELS': {
+            'champion': {'PATH': '/models/lvra_v1.joblib', 'VERSION': 'v1'},
+            'challenger': None,
+            'retired': None,
+        },
+    }
+
+
+def write_yaml(path, content):
+    with open(path, 'w') as f:
+        yaml.dump(content, f)
+    return path
+
+
+class TestReadLvraConfig:
+
+    def test_read_lvra_config_null_slots(self, tmp_path, mock_logger, valid_lvra_config):
+        path = write_yaml(tmp_path / "lvra_config.yaml", valid_lvra_config)
+        result, status_code = misc.read_lvra_config(path, mock_logger)
+        assert status_code == 0
+        assert result['MODELS']['champion'] == {'PATH': '/models/lvra_v1.joblib', 'VERSION': 'v1'}
+        assert result['MODELS']['challenger'] is None
+        assert result['MODELS']['retired'] is None
+
+    def test_read_lvra_config_missing_file_21(self, mock_logger):
+        result, status_code = misc.read_lvra_config(Path("/this/does/not/exist.yaml"), mock_logger)
+        assert (result, status_code) == (None, 21)
+
+    def test_read_lvra_config_missing_role_99(self, tmp_path, mock_logger, valid_lvra_config):
+        del valid_lvra_config['MODELS']['retired']
+        path = write_yaml(tmp_path / "lvra_config.yaml", valid_lvra_config)
+        result, status_code = misc.read_lvra_config(path, mock_logger)
+        assert (result, status_code) == (None, 99)
+
+    def test_repo_lvra_config_loads(self, mock_logger):
+        path = Path(__file__).resolve().parent.parent / "data" / "lvra_config.yaml"
+        result, status_code = misc.read_lvra_config(path, mock_logger)
+        assert status_code == 0

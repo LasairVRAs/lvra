@@ -1,6 +1,8 @@
 """
 Name: r0b_feature_maker.py
 Author: H.F.Stevance (hfstevance@gmail.com | GitHub: HeloiseS)
+Oversight: TOTAL 
+
 Description: When run as a script, calls the main function which
 * 1) Reads the config file located in environment variable LVRA_SETTINGS or, if not defined
 looks for the "public_seetings.yaml" file located in ../../../data/
@@ -225,9 +227,9 @@ def main():
     # -------------------------------------------------- #
     for stem in stem_list:
         # 1. Make the correct JSON file path (input) and csv file path (output)
-        date = stem[:8]
-        INPUT_PATH = setup_dict['json_dir'].parent / date /  f"{stem}.json"
-        OUTPUT_PATH = setup_dict['csv_dir'].parent / date /  f"{stem}.csv"
+        # Claude wrote this for issue #96 (2026-10-22)
+        INPUT_PATH = setup_dict['base_dir'] / "JSON" / stem[:4] / stem[:8] / f"{stem}.json"
+        OUTPUT_PATH = setup_dict['base_dir'] / "csv" / stem[:4] / stem[:8] / f"{stem}.csv"
 
         # 2. Make the features and so
         exit_code, clean_df = make_features(input_path = INPUT_PATH,

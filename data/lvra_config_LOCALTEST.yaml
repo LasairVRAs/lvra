@@ -1,0 +1,10 @@
+# Heloise Wrote this
+TOPIC_OUT: LVRA
+EXPLANATION: LVRA 
+URL: https://lasairvras.github.io/lvra-doc/
+MODELS:
+  champion:
+    PATH: /home/stevance/Science/r0b-retraining/models/champion_multiclass_balanced.joblib
+    VERSION: "0.1"
+  challenger: null
+  retired: null

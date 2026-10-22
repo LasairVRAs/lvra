@@ -1,19 +1,22 @@
 CREATE TABLE IF NOT EXISTS feature_making (
     stem TEXT PRIMARY KEY,
     timestamp TEXT NOT NULL DEFAULT current_timestamp,
-    r0b INTEGER
+    r0b INTEGER,
+    lvra INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS annotating (
     stem TEXT PRIMARY KEY,
     timestamp TEXT NOT NULL DEFAULT current_timestamp,
-    r0b INTEGER
+    r0b INTEGER,
+    lvra INTEGER DEFAULT 0 -- added 2026-10-21
 );
 
 CREATE TABLE IF NOT EXISTS predict (
     stem TEXT PRIMARY KEY,
     timestamp TEXT NOT NULL DEFAULT current_timestamp,
-    r0b INTEGER
+    r0b INTEGER,
+    lvra INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS diaobjid_stems (
@@ -33,6 +36,8 @@ CREATE TABLE IF NOT EXISTS provenance (
     timestamp TEXT NOT NULL DEFAULT current_timestamp
 );
 
+-- Will become obsolete when r0b is removed from prod as these are features
+-- stored in the feature store. Part of Big Refactor anyway. DB will go to MariaDB
 CREATE TABLE IF NOT EXISTS threshold_flags_provenance(
     ID INTEGER PRIMARY KEY,
     diaObjectId INTEGER,
