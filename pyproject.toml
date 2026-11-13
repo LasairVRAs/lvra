@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
                                                                                                                              
 [project]                                                                                                                    
 name = "lvra"                                                                                                             
-version = "v0.1.0"
+version = "v0.1.1"
 authors = [                                                                                                                  
     {name = "Heloise Stevance", email = "hfstevance@gmail.com"},
     {name = "Ken Smith", email= "ken.w.smith@gmail.com"},
@@ -36,7 +36,9 @@ markers = [
     "slow: marks tests as slow",
     "integration: mark tests as requiring additional infrastructure",
     "serial",
+    "live: talks to the real Lasair API; run explicitly with -m live",
 ]
+addopts = "-m 'not live'"
 
 [project.optional-dependencies]
 dev = ["pytest","pytest-cov"]  
